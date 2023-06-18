@@ -1,0 +1,7 @@
+﻿#using std
+@test 45
+print "Hello world"
+print "\n"
+print "This is a test"
+print "\n"
+print test

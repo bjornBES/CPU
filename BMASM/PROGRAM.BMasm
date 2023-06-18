@@ -1,0 +1,29 @@
+﻿.ORG &0000
+Start:
+	LODA #ff
+Loop:
+	DECR #00
+	JINZ Loop
+
+	INTR
+
+	HLTC
+	
+PRINT:
+	CMPA #00
+	POPR #02
+	INBY 00
+	DECR #00
+	JINZ PRINT_CHAR
+	INBY 10
+RESR
+
+; THIS IS THE INT ADDR
+.ORG &1000
+	PUHS "HELLO WORLD"
+	CALL PRINT:
+	REIN
+
+.ORG &FF00
+.word &00
+.word &10

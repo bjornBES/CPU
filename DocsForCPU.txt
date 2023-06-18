@@ -1,0 +1,40 @@
+﻿CPUs PC starts at addr FFF7 after that it jumps to addr 0000
+
+in the Reset thing it resets the console and the curor pos in mem
+
+Starts on ADDR FFF7
+
+0901	]
+FE04	STOI #01 &FE04
+
+0900	]
+FE00	STOI #00 &FE00
+
+0900	]
+FE01	STOI #00 &FE01
+
+0800	UCUR
+
+2F00	]
+0000	JUMP &0000
+
+
+MEM Layout
+0x0000 - 0x00FF STACK
+
+0x1000 - 0x10FF COMPILER VAR
+
+0x7100 - 0x7100 Sound Addr 
+
+0xFB00 - 0xFB00 SUB addr low 
+0xFB01 - 0xFB01 SUB addr high
+
+0xFC00 - 0xFC00 Stack pointer 
+
+0xFE00 - 0xFE00 Cursor POS X
+0xFE01 - 0xFE01 Cursor POS Y
+0xFE02 - 0xFE02 Cursor Styles
+0xFE03 - 0xFE03 Console BG color
+0xFE04 - 0xFE04 Console Clear
+0xFF00 - 0xFF00 INT ADDR L
+0xFF01 - 0xFF01 INT ADDR H

@@ -1,0 +1,46 @@
+﻿variables
+@ name (byte)value
+@ define NAME value
+
+statements
+	if
+		compare 2 things 
+	endif
+		is where the if statement endeds
+
+	if true|1 == test
+
+operators
+	==
+		equals to		a == b
+	!=
+		not equals		a != b
+	<
+		less then		a < b
+	>
+		greater then	a > b
+	--
+		dec by one
+	++
+		inc by one
+
+STD IO
+	print char[]
+	getkey byte(0-255) outputVar
+	
+
+using libs
+	std		for io
+
+LOOPs
+	DO 1
+	END
+	DO var operators var/imm
+	END
+
+Cursor
+	updates the cursors pos
+
+POKE 
+	POKE byte addr
+	pokes in to mem
