@@ -25,7 +25,9 @@ namespace CPUTing
     }
     public class Assembler : AssSets
     {
+        public string[] ADDRCODES = { "CALL", "STOI", "LOAA", "STOA", "LOAB", "STOB", "LOAC", "STOC", "LOAD", "STOD", "INTB", "JUMP", "JINZ", "JINT", "JIFT" };
         public string[] MCCODE;
+        public byte[] MEMRAM;
         private int MCINDEX = 0;
         private readonly Lables[] Lables = new Lables[0xFF];
         private int LABLEINDEX = 0;
@@ -38,6 +40,7 @@ namespace CPUTing
         }
         public void Reset()
         {
+            MEMRAM = new byte[0xFFFF + 1];
             MCCODE = new string[0xFFFF + 1];
             ASMCODE = new string[0xFFFF + 1];
             for (int i = 0; i < Lables.Length; i++)
@@ -48,6 +51,7 @@ namespace CPUTing
                     addr = "0"
                 };
             }
+            MEMRAM.Initialize();
             MCCODE.Initialize();
             ASMCODE.Initialize();
         }
@@ -56,6 +60,7 @@ namespace CPUTing
             if (ASMCODE.Length == 0xFFFF + 1)
             {
                 SPLITCODE();
+                PreAssembler();
             }
         }
         public void SPLITCODE()
@@ -66,12 +71,6 @@ namespace CPUTing
 
             do
             {
-                // setting the keywords to hex
-                if (ASMCODE[ASMCODEINDEX].Contains(NLTAG))
-                    MCCODE[PCADDR] = ASMCODE[ASMCODEINDEX].Replace(NLTAG, "1B");
-
-                if (ASMCODE[ASMCODEINDEX].Contains(ESCTAG))
-                    MCCODE[PCADDR] = ASMCODE[ASMCODEINDEX].Replace(ESCTAG, "0A");
                 string fullADDR;
                 string ADDRs1;
                 string ADDRs2;
@@ -82,13 +81,35 @@ namespace CPUTing
                     ADDRs1 = ASMCODE[ASMCODEINDEX][6].ToString() + ASMCODE[ASMCODEINDEX][7].ToString(); //high
                     ADDRs2 = ASMCODE[ASMCODEINDEX][8].ToString() + ASMCODE[ASMCODEINDEX][9].ToString(); //low
                     fullADDR = ADDRs1 + ADDRs2;
-                    byte[] HEX = HexConverter.GetBytes(fullADDR);
-                    PCADDR = ushort.Parse((HEX[0].ToString() + HEX[1].ToString()));
+                    ushort HEX = Convert.ToUInt16(fullADDR, 16);
+                    PCADDR = HEX;
                 }
 
                 if (ASMCODE[ASMCODEINDEX].Contains(SETADDRINCODE))
                 {
-                    MCCODE[PCADDR] = ASMCODE[ASMCODEINDEX][6].ToString() + ASMCODE[ASMCODEINDEX][7].ToString(); //high
+                    ADDRs1 = ASMCODE[ASMCODEINDEX][7].ToString() + ASMCODE[ASMCODEINDEX][8].ToString(); // high
+                    ADDRs2 = ASMCODE[ASMCODEINDEX][9].ToString() + ASMCODE[ASMCODEINDEX][10].ToString(); // low
+                    fullADDR = ADDRs1 + ADDRs2;
+                    ushort HEX = Convert.ToUInt16(fullADDR, 16);
+                    if (HEX.ToString().Length == 4)
+                    {
+                        MEMRAM[PCADDR] = byte.Parse(HEX.ToString().Remove(0, 2)); //LOW
+                        PCADDR++;
+                        MEMRAM[PCADDR] = byte.Parse(HEX.ToString().Remove(2, 2)); //high
+                    }
+                    if (HEX.ToString().Length == 3)
+                    {
+                        MEMRAM[PCADDR] = byte.Parse(HEX.ToString().PadLeft(2, '0').Remove(0, 2)); //LOW
+                        PCADDR++;
+                        MEMRAM[PCADDR] = byte.Parse(HEX.ToString().Remove(2, 2)); //high
+                    }
+                    if (HEX.ToString().Length == 1 || HEX.ToString().Length == 2)
+                    {
+                        MEMRAM[PCADDR] = 00; //LOW
+                        PCADDR++;
+                        MEMRAM[PCADDR] = byte.Parse(HEX.ToString().PadLeft(2, '0')); //high
+                    }
+
                 }
 
                 if (ASMCODE[ASMCODEINDEX].Contains(COMM) == true)
@@ -105,7 +126,7 @@ namespace CPUTing
                     LABLEINDEX++;
                 }
 
-                if (ASMCODE[ASMCODEINDEX].Contains("\t"))
+                if (ASMCODE[ASMCODEINDEX].Contains("\t") && ASMCODE[ASMCODEINDEX].Length > 2)
                 {
                     int ATINDEX = 0;
                     if (ASMCODE[ASMCODEINDEX].Contains(IMMHEX) || ASMCODE[ASMCODEINDEX].Contains(AMMHEX))
@@ -113,14 +134,13 @@ namespace CPUTing
                         if (ASMCODE[ASMCODEINDEX].Contains(IMMHEX))
                         {
                             ATINDEX = ASMCODE[ASMCODEINDEX].IndexOf(IMMHEX);
+                            ASMCODE[ASMCODEINDEX] = ASMCODE[ASMCODEINDEX].Remove(ATINDEX, 1);
                         }
                         if (ASMCODE[ASMCODEINDEX].Contains(AMMHEX))
                         {
                             ATINDEX = ASMCODE[ASMCODEINDEX].IndexOf(AMMHEX);
+                            ASMCODE[ASMCODEINDEX] = ASMCODE[ASMCODEINDEX].Remove(ATINDEX, 1);
                         }
-                        MCCODE[PCADDR] = ASMCODE[ASMCODEINDEX].Remove(ATINDEX, 1);
-                        MCCODE[PCADDR] = ASMCODE[ASMCODEINDEX].TrimEnd(EMETY);
-                        MCCODE[PCADDR] = ASMCODE[ASMCODEINDEX].Trim(EMETY);
                     }
                     else
                     {
@@ -132,9 +152,25 @@ namespace CPUTing
                                 {
                                     byte[] ADDR = { byte.Parse(Lables[i].addr.Remove(1, 3)), byte.Parse(Lables[i].addr.Remove(0, 2)) };
                                     string HEXADDR = HexConverter.GetHexString(ADDR);
-                                    MCCODE[PCADDR] = HEXADDR.PadLeft(4, '0');
+                                    ASMCODE[ASMCODEINDEX] = ASMCODE[ASMCODEINDEX].Split(' ', 2)[0] + " " + HEXADDR.PadLeft(4, '0');
                                 }
                             }
+                        }
+                    }
+
+                    // setting the keywords to hex
+                    if (ASMCODE[ASMCODEINDEX].Contains(NLTAG))
+                        ASMCODE[ASMCODEINDEX] = ASMCODE[ASMCODEINDEX].Replace(NLTAG, "1B");
+
+                    if (ASMCODE[ASMCODEINDEX].Contains(ESCTAG))
+                        ASMCODE[ASMCODEINDEX] = ASMCODE[ASMCODEINDEX].Replace(ESCTAG, "0A");
+
+                    MCCODE[PCADDR] = ASMCODE[ASMCODEINDEX];
+                    for (int c = 0; c < ADDRCODES.Length; c++)
+                    {
+                        if(ASMCODE[ASMCODEINDEX].Split('\t', ' ')[1] == ADDRCODES[c])
+                        {
+                            PCADDR++;
                         }
                     }
                     PCADDR++;
@@ -146,150 +182,23 @@ namespace CPUTing
 
                 ASMCODEINDEX++;
             } while (ASMCODEINDEX < CODELEN);
-
+            return;
             // end here
-            /*
-            for (int i = 0; i < CODE.Length; i++)
-            {
-                if (CODE[i] == null)
-                    CODE[i] = "*HLTC";
-                DoLables(i);
-            }
+        }
+        public void PreAssembler()
+        {
             SPLITCHAR();
             SPLITSTRING();
-            MCINDEX = 0;
-            for (int i = 0; i < CODEINDEX; i++)
+            for (int i = 0; i < MCCODE.Length; i++)
             {
-                ASS(i, true);
-            }
-            */
-        }
-        /*
-        public void SPLITCHAR()
-        {
-            for (int i = 0; i < CODE.Length; i++)
-            {
-                if (CODE[i].Contains(CHAR))
+                if (MCCODE[i] != null && MCCODE[i] != "")
                 {
-                    int index = CODE[i].IndexOf(CHAR);
-                    char letter = CODE[i][index + 1];
-                    CODE[i] = CODE[i].Trim(CHAR);
-                    CODE[i] = CODE[i].Replace("'" + letter, letter.ToString());
-                    string[] text = CODE[i].Split(' ', 1);
-                    text[1] = ((byte)letter).ToString();
-                    byte[] HEX = { Convert.ToByte(text[1]) };
-                    CODE[i] = text[0] + " " + HexConverter.GetHexString(HEX);
-                }
-            }
-        }
-        public void SPLITSTRING()
-        {
-            for (int i = 0; i < CODE.Length; i++)
-            {
-                if (CODE[i].Contains(STRING))
-                {
-                    int index = CODE[i].IndexOf(STRING);
-                    int indexEnd = CODE[i].IndexOf(STRING, index + 1);
-                    int Len = indexEnd - index - 1;
-                    string letterHEX = "";
-                    string letter = "";
-                    for (int S = 0; S < Len; S++)
+                    if (TriggerTO == false)
                     {
-                        byte[] HEX = { ((byte)CODE[i][index + S + 1]) };
-                        letterHEX += HexConverter.GetHexString(HEX) + " ";
-                        letter += CODE[i][index + S + 1];
-                    }
-                    letter = letter.TrimEnd(' ');
-                    letterHEX = letterHEX.TrimEnd(' ');
-                    CODE[i] = CODE[i].Trim(STRING);
-                    CODE[i] = CODE[i].Replace("\"" + letter, letterHEX.ToString());
-                    string[] text = CODE[i].Split(' ', 2);
-                    text[1] = ((byte)letter[0]).ToString();
-                    CODE[i] = text[0] + " (" + letterHEX + ")";
-                }
-            }
-        }
-        public void ASS(int i, bool EN)
-        {
-            string ARGS1 = "";
-            string ARGS2 = "";
-            string OPCODE;
-            if (CODE[i].Contains(' '))
-            {
-                OPCODE = CODE[i].Split(' ')[0];
-                if (CODE[i].Contains('('))
-                {
-                    ARGS1 = CODE[i].Split('(', ')')[1];
-                }
-                else
-                {
-                    ARGS1 = CODE[i].Split(' ')[1].PadLeft(2, '0');
-                    if (CODE[i].Split(' ').Length == 3)
-                    {
-                        ARGS2 = CODE[i].Split(' ')[2].PadLeft(4, '0');
-                    }
-                }
-            }
-            else
-            {
-                OPCODE = CODE[i].PadLeft(4, '0');
-            }
-            TOMCCODE(OPCODE, ARGS1, ARGS2, EN);
-        }
-        */
-        private void SETANDGETVALUE(string opcode, string ARGS, string Values, INSTR iNSTR, bool EN)
-        {
-            if (Values == opcode)
-            {
-
-                if (EN == true)
-                {
-                    byte[] code = { (byte)iNSTR };
-                    if (ARGS == "")
-                    {
-                        MCCODE[MCINDEX] = HexConverter.GetHexString(code) + "00";
-                    }
-                    else if (ARGS.Length == 4)
-                    {
-                        MCCODE[MCINDEX] = HexConverter.GetHexString(code) + "00";
-                        MCINDEX++;
-                        MCCODE[MCINDEX] = ARGS;
-                    }
-                    else if (ARGS.Length > 4)
-                    {
-                        int len = ARGS.Split(' ').Length;
-                        MCCODE[MCINDEX] = HexConverter.GetHexString(code) + len.ToString().PadLeft(2, '0') + " (" + ARGS + ")";
+                        ASS(i);
                     }
                     else
-                    {
-                        MCCODE[MCINDEX] = HexConverter.GetHexString(code) + ARGS;
-                    }
-                }
-                else
-                {
-                    if (ARGS.Length == 4)
-                    {
-                        MCINDEX++;
-                    }
-                }
-            }
-        }
-
-        private void SETANDGETVALUE(string opcode, string ARGS1, string ARGS2, string Values, INSTR iNSTR, bool EN)
-        {
-            if (Values == opcode)
-            {
-
-                if (EN == true)
-                {
-                    byte[] code = { (byte)iNSTR };
-
-                    if (ARGS2.Length == 4 && ARGS1.Length == 2)
-                    {
-                        MCCODE[MCINDEX] = HexConverter.GetHexString(code) + ARGS1;
-                        MCINDEX++;
-                        MCCODE[MCINDEX] = ARGS2;
-                    }
+                        TriggerTO = false;
                 }
                 else
                 {
@@ -297,7 +206,79 @@ namespace CPUTing
                 }
             }
         }
-        public void TOMCCODE(string OPCODE, string ARGS1, string ARGS2, bool EN)
+        public void SPLITCHAR()
+        {
+            for (int i = 0; i < MCCODE.Length; i++)
+            {
+                if (MCCODE[i] != null && MCCODE[i].Contains(CHAR))
+                {
+                    int index = MCCODE[i].IndexOf(CHAR);
+                    char letter = MCCODE[i][index + 1];
+                    MCCODE[i] = MCCODE[i].Trim(CHAR);
+                    MCCODE[i] = MCCODE[i].Replace("'" + letter, letter.ToString());
+                    string[] text = MCCODE[i].Split(' ', 1);
+                    text[1] = ((byte)letter).ToString();
+                    byte[] HEX = { Convert.ToByte(text[1]) };
+                    MCCODE[i] = text[0] + " " + HexConverter.GetHexString(HEX);
+                }
+            }
+        }
+        public void SPLITSTRING()
+        {
+            for (int i = 0; i < MCCODE.Length; i++)
+            {
+                if (MCCODE[i] != null && MCCODE[i].Contains(STRING))
+                {
+                    int index = MCCODE[i].IndexOf(STRING);
+                    int indexEnd = MCCODE[i].IndexOf(STRING, index + 1);
+                    int Len = indexEnd - index - 1;
+                    string letterHEX = "";
+                    string letter = "";
+                    for (int S = 0; S < Len; S++)
+                    {
+                        byte[] HEX = { ((byte)MCCODE[i][index + S + 1]) };
+                        letterHEX += HexConverter.GetHexString(HEX) + " ";
+                        letter += MCCODE[i][index + S + 1];
+                    }
+                    letter = letter.TrimEnd(' ');
+                    letterHEX = letterHEX.TrimEnd(' ');
+                    MCCODE[i] = MCCODE[i].Trim(STRING);
+                    MCCODE[i] = MCCODE[i].Replace("\"" + letter, letterHEX.ToString());
+                    string[] text = MCCODE[i].Split(' ', 2);
+                    text[1] = ((byte)letter[0]).ToString();
+                    MCCODE[i] = text[0] + " (" + letterHEX + ")";
+                }
+            }
+        }
+        bool TriggerTO = false;
+        public void ASS(int i)
+        {
+            string ARGS1 = "";
+            string ARGS2 = "";
+            string OPCODE;
+            if (MCCODE[i].Split('\t')[1].Contains(' '))
+            {
+                OPCODE = MCCODE[i].Split('\t')[1].Split(' ')[0];
+                if (MCCODE[i].Split('\t')[1].Contains('('))
+                {
+                    ARGS1 = MCCODE[i].Split('\t')[1].Split('(', ')')[1];
+                }
+                else
+                {
+                    ARGS1 = MCCODE[i].Split('\t')[1].Split(' ')[1].PadLeft(2, '0');
+                    if (MCCODE[i].Split('\t')[1].Split(' ').Length == 3)
+                    {
+                        ARGS2 = MCCODE[i].Split('\t')[1].Split(' ')[2].PadLeft(4, '0');
+                    }
+                }
+            }
+            else
+            {
+                OPCODE = MCCODE[i].Split('\t')[1].PadLeft(4, '0');
+            }
+                TOMCCODE(OPCODE, ARGS1.ToUpper(), ARGS2.ToUpper());
+        }
+        public void TOMCCODE(string OPCODE, string ARGS1, string ARGS2 = "")
         {
             INSTR[] iNSTR = (INSTR[])Enum.GetValues(typeof(INSTR));
             string[] Values = Enum.GetNames(typeof(INSTR));
@@ -305,14 +286,36 @@ namespace CPUTing
             {
                 if (OPCODE == Values[i])
                 {
-                    if (ARGS2 != "")
+                    string code = HexConverter.GetHexString(new byte[] { (byte)iNSTR[i] });
+
+                    if (ARGS2.Length == 4 && ARGS1.Length == 2) // ADDR AND IMM & ARGS1 | ARGS2
                     {
-                        SETANDGETVALUE(OPCODE, ARGS1, ARGS2, Values[i], iNSTR[i], EN);
+                        MCCODE[MCINDEX] = code + ARGS1;
+                        MCINDEX++;
+                        MCCODE[MCINDEX] = ARGS2;
+                        TriggerTO = true;
                     }
-                    else
+                    if (ARGS1 == "") // NULL
                     {
-                        SETANDGETVALUE(OPCODE, ARGS1, Values[i], iNSTR[i], EN);
+                        MCCODE[MCINDEX] = code + "00";
                     }
+                    else if (ARGS1.Length == 4) // ADDR & ARGS2
+                    {
+                        MCCODE[MCINDEX] = code + "00";
+                        MCINDEX++;
+                        MCCODE[MCINDEX] = ARGS1;
+                        TriggerTO = true;
+                    }
+                    else if (ARGS1.Length > 4) // STRING & ARGS1
+                    {
+                        int len = ARGS1.Split(' ').Length;
+                        MCCODE[MCINDEX] = code + len.ToString().PadLeft(2, '0') + " (" + ARGS1 + ")";
+                    }
+                    else // IMM & ARGS1
+                    {
+                        MCCODE[MCINDEX] = code + ARGS1;
+                    }
+
                     MCINDEX++;
                 }
             }

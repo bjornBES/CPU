@@ -13,8 +13,8 @@ namespace CPUTing
         private readonly Assembler Assembler;
         public Complier Complier;
         private string[] code;
-        private readonly bool useCompiler = true;
-        private readonly string BMasmpath = "D:/2019/repos/CPUTing/BMASM/CALLTEST.BMasm";
+        private readonly bool useCompiler = false;
+        private readonly string BMasmpath = "D:/2019/repos/CPUTing/BMASM/PROGRAM.BMasm";
         private readonly string BZpath = "D:/2019/repos/CPUTing/HIGHLEVELLANG/Porgram.BZ";
         private const string CHARS = @"qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKKLZXCVBNM1234567890#@";
         private static void Main()
@@ -192,8 +192,15 @@ namespace CPUTing
             // todo this also not work like all my other code
             bool EXIT = false;
             int CursorY = 0;
-            DoCompiler();
-            Complier.GetCode(out ASMCODE);
+            Assembler.Reset();
+            if(useCompiler == true)
+            {
+                RUNCOMPILER();
+            }
+            else
+            {
+                RUNRAWCODE();
+            }
             Assembler.Start();
             do
             {
@@ -208,7 +215,7 @@ namespace CPUTing
                 {
                     CursorY--;
                 }
-                if (CursorY != ASMCODE.Length && KEY.Key == ConsoleKey.DownArrow)
+                if (CursorY != Assembler.MCCODE.Length && KEY.Key == ConsoleKey.DownArrow)
                 {
                     CursorY++;
                 }
@@ -236,10 +243,12 @@ namespace CPUTing
         {
             for (int i = CursorY; i < Assembler.MCCODE.Length; i++)
             {
-                Console.Write(i + " ");
-                Console.Write(Assembler.MCCODE[i] + "   ");
-                // todo add MCCode to
-                Console.WriteLine("");
+                if (Assembler.MCCODE[i] != null)
+                {
+                    Console.Write(Convert.ToString(i, 16).PadLeft(4, '0') + " ");
+                    Console.Write(Assembler.MCCODE[i] + "   ");
+                    Console.WriteLine("");
+                }
             }
         }
         private void INTIT()
@@ -263,8 +272,9 @@ namespace CPUTing
             code = File.ReadAllText(BMasmpath).Split("\r\n");
             for (int i = 0; i < code.Length; i++)
             {
-                Assembler.MCCODE[i] = code[i];
+                Assembler.ASMCODE[i] = code[i];
             }
+            Assembler.CODELEN = code.Length;
         }
         void DoCompiler()
         {
@@ -282,14 +292,9 @@ namespace CPUTing
             Complier.GetErorrs(out ERORRS);
             if (ERORRS == "")
             {
-                for (int i = 0; i < ASMCODE.Length; i++)
-                {
-                    if (ASMCODE[i] == null)
-                        ASMCODE[i] = "\tHLTC";
-                }
                 for (int i = 0; i < code.Length; i++)
                 {
-                    Assembler.MCCODE[i] = code[i];
+                    Assembler.ASMCODE[i] = code[i];
                 }
             }
             else
@@ -306,18 +311,16 @@ namespace CPUTing
             MEM.START();
             PORTs.START();
             CPU.START(MEM, out MEM);
+            MEM.RAM = Assembler.MEMRAM;
             // todo Assembler is not working the lens and 0xFFFF + 1
-            Assembler.MCCODE.CopyTo(MEM.ROM, 0);
-            for (int i = 0; i < MEM.ROM.Length; i++)
+            for (int i = 0; i < Assembler.MCCODE.Length; i++)
             {
                 Console.SetCursorPosition(0, 0);
                 Console.WriteLine(i / 100 + " Lines in");
-                if (MEM.ROM[i] != null)
+                if (Assembler.MCCODE[i] != null)
                 {
-                    MEM.ROM[i] = MEM.ROM[i].ToUpper();
+                    MEM.ROM[i] = Assembler.MCCODE[i].ToUpper();
                 }
-                else
-                    break;
             }
         }
         private void RUNCPU()

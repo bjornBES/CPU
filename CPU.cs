@@ -117,17 +117,15 @@ namespace CPUTing
         }
         public void TICK(MEM MEM, PORT PORT)
         {
-            if(FLAGS[FG_INTS] == 1)
-            {
-                string test = "";
-                test += MEM.RAM[INTL].ToString().PadLeft(2, '0'); //H
-                test += MEM.RAM[INTH].ToString().PadLeft(2, '0'); //L
-                INTVectorAddr = Convert.ToUInt16(test, 16);
-            }
+            string test = "";
+            test += MEM.RAM[INTH].ToString().PadLeft(2, '0'); //H
+            test += MEM.RAM[INTL].ToString().PadLeft(2, '0'); //L
+            INTVectorAddr = ushort.Parse(test);
+
             if (MEM.RAM[CursorStyle] != 0b00000000)
             {
                 string Bytes = Convert.ToString(MEM.RAM[CursorStyle], 2).PadRight(8, '0');
-                if(Bytes[0] == '1')
+                if (Bytes[0] == '1')
                     Console.CursorVisible = true;
                 else
                     Console.CursorVisible = false;
@@ -287,7 +285,7 @@ namespace CPUTing
                     switch (PORTINSTR)
                     {
                         case 0:
-                            LOAD((byte)PORTs.OUTINPUT, Reg.C);
+                            LOAD((byte)PORTs.OUTINPUT, Reg.C); // here keys in \u and not ascii
                             break;
                     }
                     break;
@@ -411,20 +409,28 @@ namespace CPUTing
                     CMPF(DATABUS);
                     break;
                 case INSTR.ANDI:
+                    Logic(DATABUS, false, CPUTing.LOGICOP.ADD);
                     break;
                 case INSTR.NOTI:
+                    Logic(DATABUS, false, CPUTing.LOGICOP.NOT);
                     break;
                 case INSTR.ORIM:
+                    Logic(DATABUS, false, CPUTing.LOGICOP.OR);
                     break;
                 case INSTR.NORI:
+                    Logic(DATABUS, false, CPUTing.LOGICOP.NOR);
                     break;
                 case INSTR.ANDR:
+                    Logic(DATABUS, true, CPUTing.LOGICOP.ADD);
                     break;
                 case INSTR.NOTR:
+                    Logic(DATABUS, true, CPUTing.LOGICOP.NOT);
                     break;
                 case INSTR.ORRE:
+                    Logic(DATABUS, true, CPUTing.LOGICOP.OR);
                     break;
                 case INSTR.NORR:
+                    Logic(DATABUS, true, CPUTing.LOGICOP.NOR);
                     break;
                 case INSTR.MOBA:
                     if (BA == true)
@@ -488,14 +494,34 @@ namespace CPUTing
 
                     break;
                 case INSTR.INTR:
+                    PUSHPC(MEM);
                     PC = INTVectorAddr;
+                    PC--;
                     break;
                 case INSTR.REIN:
-                    RESR(MEM);
+                    POPPC(MEM);
                     break;
                 default:
                     break;
             }
+        }
+        public void PUSHPC(MEM MEM)
+        {
+            string IMMS = Convert.ToString(PC + 1).PadLeft(4, '0');
+            MEM.RAM[MEM.RAM[SP]] = byte.Parse(IMMS.Remove(2, 2)); //H
+            MEM.RAM[SP]++;
+            MEM.RAM[MEM.RAM[SP]] = byte.Parse(IMMS.Remove(0, 2)); //L
+            MEM.RAM[SP]++;
+        }
+        public void POPPC(MEM MEM)
+        {
+            string test = "";
+            MEM.RAM[SP]--;
+            test += MEM.RAM[MEM.RAM[SP]].ToString().PadLeft(2, '0'); //H
+            MEM.RAM[SP]--;
+            test += MEM.RAM[MEM.RAM[SP]].ToString().PadLeft(2, '0'); //L
+            ushort ADDR = Convert.ToUInt16(test, 10);
+            PC = (ushort)(ADDR);
         }
         public void LODADDR(MEM mem, Reg reg, ushort Addr)
         {
@@ -659,17 +685,16 @@ namespace CPUTing
         }
         public void CALL(MEM MEM, ushort Imm)
         {
-            string IMMS = Imm.ToString().PadLeft(4, '0');
-            byte[] test = HexConverter.GetBytes(IMMS);
-            MEM.RAM[SUPL] = test[0]; //L
-            MEM.RAM[SUPH] = test[1]; //H
+            string IMMS = Convert.ToString(Imm).PadLeft(4, '0');
+            MEM.RAM[SUPL] = byte.Parse(IMMS.Remove(0,2)); //L
+            MEM.RAM[SUPH] = byte.Parse(IMMS.Remove(2, 2)); //H
         }
         public void RESR(MEM MEM)
         {
             string test = "";
-            test += MEM.RAM[SUPL].ToString().PadLeft(2, '0'); //H
-            test += MEM.RAM[SUPH].ToString().PadLeft(2, '0'); //L
-            ushort ADDR = Convert.ToUInt16(test, 16);
+            test += MEM.RAM[SUPH].ToString().PadLeft(2, '0'); //H
+            test += MEM.RAM[SUPL].ToString().PadLeft(2, '0'); //L
+            ushort ADDR = Convert.ToUInt16(test, 10);
             PC = (ushort)(ADDR - 1);
         }
         public void POPR(MEM MEM, byte Imm)
@@ -805,21 +830,29 @@ namespace CPUTing
         }
         public void Logic(byte Imm, bool RegORImm, LOGICOP lOGICOP)
         {
-            if(RegORImm == true)
+            if(RegORImm == true) //REG
             {
                 switch (GetReg(Imm))
                 {
                     case Reg.A:
+                        A = LOGICOP(lOGICOP, A, A);
                         break;
                     case Reg.B:
+                        A = LOGICOP(lOGICOP, A, B);
                         break;
                     case Reg.C:
+                        A = LOGICOP(lOGICOP, A, (byte)C);
                         break;
                     case Reg.D:
+                        A = LOGICOP(lOGICOP, A, D);
                         break;
                     default:
                         break;
                 }
+            }
+            else
+            {
+                A = LOGICOP(lOGICOP, A, Imm);
             }
         }
         byte LOGICOP(LOGICOP lOGICOP, byte F, byte L)
