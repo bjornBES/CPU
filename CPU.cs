@@ -49,7 +49,7 @@ namespace CPUTing
         //B REG
         public byte B;
         //for the PORT IO
-        public char C;
+        public byte C;
         //D REG
         public byte D;
         public bool BA;
@@ -61,6 +61,10 @@ namespace CPUTing
         public byte DATABUS;
         public ushort ADDRBUS;
         public void START(MEM MEM, out MEM Omem)
+        {
+            RESET(MEM, out Omem);
+        }
+        public void RESET(MEM MEM, out MEM OMEM)
         {
             FLAGS = new byte[8];
             SR = new bool[8];
@@ -78,7 +82,7 @@ namespace CPUTing
             CAL = 0; // Char array len
             A = 0;
             B = 0;
-            C = ' ';
+            C = 0;
             D = 0;
             BA = false;
             PC = PCSTARTADDR;
@@ -92,10 +96,10 @@ namespace CPUTing
             MEM.ROM[0xFFFE] = "2F00";
             MEM.ROM[0xFFFF] = "0000";
             MEM.RAM[SP] = 0x00;
-            Omem = MEM;
+            OMEM = MEM;
             DATABUS = 0;
         }
-        public void RESET()
+        public void SReset()
         {
             for (int i = 0; i < FLAGS.Length; i++)
             {
@@ -110,10 +114,11 @@ namespace CPUTing
             CAL = 0; // Char array len
             A = 0;
             B = 0;
-            C = ' ';
+            C = 0;
             D = 0;
             BA = false;
             PC = PCSTARTADDR;
+            DATABUS = 0;
         }
         public void TICK(MEM MEM, PORT PORT)
         {
@@ -262,11 +267,11 @@ namespace CPUTing
 
                             break;
                         case 3:
-                            PORTs.OUTINPUT = '\0';
+                            PORTs.OUTINPUT = 0;
                             Console.Clear();
                             break;
                         case 4:
-                            PORTs.OUTINPUT = '\0';
+                            PORTs.OUTINPUT = 0;
                             PORTs.CLS();
                             break;
                     }
@@ -285,7 +290,8 @@ namespace CPUTing
                     switch (PORTINSTR)
                     {
                         case 0:
-                            LOAD((byte)PORTs.OUTINPUT, Reg.C); // here keys in \u and not ascii
+                            //now outputing an 8 bit number aka byte
+                            LOAD(PORTs.OUTINPUT, Reg.C); // here keys in \u+001B and not ascii 0x1B
                             break;
                     }
                     break;
@@ -373,7 +379,7 @@ namespace CPUTing
                     PC--;
                     break;
                 case INSTR.CMPC:
-                    CMP((byte)C, DATABUS);
+                    CMP(C, DATABUS);
                     break;
                 case INSTR.LODD:
                     LOAD(DATABUS, Reg.D);
@@ -534,7 +540,7 @@ namespace CPUTing
                     B = mem.RAM[Addr];
                     break;
                 case Reg.C:
-                    C = (char)mem.RAM[Addr];
+                    C = mem.RAM[Addr];
                     break;
                 case Reg.D:
                     D = mem.RAM[Addr];
@@ -709,7 +715,7 @@ namespace CPUTing
                     B = MEM.RAM[MEM.RAM[SP]];
                     break;
                 case Reg.C:
-                    C = (char)MEM.RAM[MEM.RAM[SP]];
+                    C = MEM.RAM[MEM.RAM[SP]];
                     break;
                 case Reg.D:
                     D = MEM.RAM[MEM.RAM[SP]];
@@ -731,7 +737,7 @@ namespace CPUTing
                     CMPREGS(B);
                     break;
                 case Reg.C:
-                    C = (char)Imm;
+                    C = Imm;
                     CMPREGS((byte)C);
                     break;
                 case Reg.D:
@@ -867,6 +873,8 @@ namespace CPUTing
                     return (byte)(F | L);
                 case CPUTing.LOGICOP.NOR:
                     return NOT((byte)(F | L));
+                default:
+                    break;
             }
             return 0;
         }
@@ -921,8 +929,8 @@ namespace CPUTing
                     B = F;
                     break;
                 case Reg.C:
-                    Buffer = (byte)C;
-                    C = (char)F;
+                    Buffer = C;
+                    C = F;
                     break;
                 case Reg.D:
                     Buffer = D;

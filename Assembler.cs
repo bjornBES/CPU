@@ -159,11 +159,11 @@ namespace CPUTing
                     }
 
                     // setting the keywords to hex
-                    if (ASMCODE[ASMCODEINDEX].Contains(NLTAG))
-                        ASMCODE[ASMCODEINDEX] = ASMCODE[ASMCODEINDEX].Replace(NLTAG, "1B");
-
                     if (ASMCODE[ASMCODEINDEX].Contains(ESCTAG))
-                        ASMCODE[ASMCODEINDEX] = ASMCODE[ASMCODEINDEX].Replace(ESCTAG, "0A");
+                        ASMCODE[ASMCODEINDEX] = ASMCODE[ASMCODEINDEX].Replace(ESCTAG, "1B");
+
+                    if (ASMCODE[ASMCODEINDEX].Contains(NLTAG))
+                        ASMCODE[ASMCODEINDEX] = ASMCODE[ASMCODEINDEX].Replace(NLTAG, "0A");
 
                     MCCODE[PCADDR] = ASMCODE[ASMCODEINDEX];
                     for (int c = 0; c < ADDRCODES.Length; c++)

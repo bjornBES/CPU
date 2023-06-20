@@ -7,7 +7,7 @@ namespace CPUTing
     {
         PORTMEM PORTMEM;
         public char[] ConsoleReg;
-        public char OUTINPUT;
+        public byte OUTINPUT;
         public int INDEX = 0;
         public char KEYREG = ' ';
 
@@ -27,9 +27,9 @@ namespace CPUTing
         {
             INDEX = 0;
         }
-        public void LOADWORD(char C)
+        public void LOADWORD(byte C)
         {
-            ConsoleReg[INDEX] = C;
+            ConsoleReg[INDEX] = (char)C;
             INDEX++;
         }
         public void LOADWORD(char C, int index)
@@ -53,7 +53,7 @@ namespace CPUTing
         public void GETKEYINPUT()
         {
             //get input here
-            OUTINPUT = Console.ReadKey().KeyChar;
+            OUTINPUT = (byte)Console.ReadKey().Key;
         }
     }
     public struct PORTMEM

@@ -66,6 +66,8 @@ namespace CPUTing
         }
         public override void Run()
         {
+            CPU.SReset();
+            PORTs.START();
             Console.SetWindowSize(20, 20);
             Console.SetBufferSize(20, 20);
             RUNCPU();
@@ -83,13 +85,11 @@ namespace CPUTing
             int XLINE = 0;
             int EDIT = 0;
             int MENU = 1;
-            ConsoleKeyInfo KEY = new ConsoleKeyInfo();
             code = File.ReadAllText(BZpath).Split("\r\n");
-            string[] CODEBUFFER = new string[1000];
             //Loop
             while (MENU == 1)
             {
-                KEY = Console.ReadKey();
+                ConsoleKeyInfo KEY = Console.ReadKey();
                 Console.Clear();
                 DoCompiler();
                 for (int i = DownLInes; i < code.Length; i++)
@@ -251,22 +251,6 @@ namespace CPUTing
                 }
             }
         }
-        private void INTIT()
-        {
-            if (useCompiler == true)
-            {
-                RUNCOMPILER();
-            }
-            else
-            {
-                RUNRAWCODE();
-            }
-
-            Assembler.Start();
-
-            FILLCODE();
-            RUNCPU();
-        }
         private void RUNRAWCODE()
         {
             code = File.ReadAllText(BMasmpath).Split("\r\n");
@@ -330,7 +314,7 @@ namespace CPUTing
             {
                 CPU.TICK(MEM, PORTs);
             }
-            CPU.RESET();
+            CPU.RESET(MEM, out MEM);
             return;
         }
     }
