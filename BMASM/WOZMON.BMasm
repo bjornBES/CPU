@@ -1,0 +1,52 @@
+﻿.ORG &FFE0
+
+XAML  = $24                            ; Last "opened" location Low
+XAMH  = $25                            ; Last "opened" location High
+STL   = $26                            ; Store address Low
+STH   = $27                            ; Store address High
+L     = $28                            ; Hex value parsing Low
+H     = $29                            ; Hex value parsing High
+YSAV  = $2A                            ; Used to see if hex value is given
+MODE  = $2B                            ; $00=XAM, $7F=STOR, $AE=BLOCK XAM
+
+IN    = $0200                          ; Input buffer
+
+START:
+
+UPDATE:
+
+ESCAPE:
+    LODC '\'
+    CALL ECHO
+
+RUN:
+
+PEEK:
+
+
+PEEK_S:
+
+PEEK_G:
+
+
+GETKEYS:
+    PUHR #00
+    PUHR #02
+    INBY #12
+    INBY #15
+    INBY #F0
+    STOC &10 %A
+    POPR #02
+    POPR #00
+    RESR
+
+ECHO:
+    PUHR #00
+	INBY #E0
+	INBY #00
+	INBY #05
+TXDELAY:
+    LODA #FF
+    JINZ TXDELAY
+    POPR #00
+	RESR

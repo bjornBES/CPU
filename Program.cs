@@ -7,7 +7,7 @@ namespace CPUTing
 {
     internal class Program : ConsoleMenu
     {
-        private readonly PORT PORTs;
+        private PORT PORTs;
         private CPU CPU;
         private MEM MEM;
         private readonly Assembler Assembler;
@@ -51,6 +51,7 @@ namespace CPUTing
         }
         public override void Build()
         {
+            Assembler.Reset();
             if (useCompiler == true)
             {
                 RUNCOMPILER();
@@ -62,12 +63,18 @@ namespace CPUTing
 
             Assembler.Start();
 
+            if(Assembler.error == "")
+            {
+                Console.WriteLine(Assembler.error);
+                Console.WriteLine("there is " + Assembler.error.Split("\n").Length+ "errors ");
+            }
+
             FILLCODE();
         }
         public override void Run()
         {
             CPU.SReset();
-            PORTs.START();
+            PORTs.STARTVIDEO();
             Console.SetWindowSize(20, 20);
             Console.SetBufferSize(20, 20);
             RUNCPU();
@@ -189,22 +196,12 @@ namespace CPUTing
         }
         public override void Dump()
         {
-            // todo this also not work like all my other code
             bool EXIT = false;
-            int CursorY = 0;
-            Assembler.Reset();
-            if(useCompiler == true)
-            {
-                RUNCOMPILER();
-            }
-            else
-            {
-                RUNRAWCODE();
-            }
-            Assembler.Start();
+            ushort CursorY = 0;
+            ConsoleKeyInfo KEY;
             do
             {
-                ConsoleKeyInfo KEY = Console.ReadKey();
+                KEY = Console.ReadKey();
                 Console.Clear();
                 DUMPer(CursorY);
                 if (KEY.Key == ConsoleKey.Escape)
@@ -215,9 +212,56 @@ namespace CPUTing
                 {
                     CursorY--;
                 }
-                if (CursorY != Assembler.MCCODE.Length && KEY.Key == ConsoleKey.DownArrow)
+                if (CursorY != Assembler.MCCODE.Length - 10 && KEY.Key == ConsoleKey.DownArrow)
                 {
                     CursorY++;
+                }
+                if(CursorY >= 0xFFFF - 10)
+                {
+                    CursorY = 0xFFFF - 10;
+                }
+                if(KEY.Key == ConsoleKey.J)
+                {
+                    Console.WriteLine("Write a line number");
+                    string JumpLine = Console.ReadLine();
+                    ushort line;
+                    if (JumpLine.Contains('#'))
+                    {
+                        line = Convert.ToUInt16(JumpLine.Remove(0, 1), 16);
+                    }
+                    else
+                    {
+                        line = ushort.Parse(JumpLine);
+                    }
+                    CursorY = line;
+                }
+                if (KEY.Key == ConsoleKey.F)
+                {
+                    Console.WriteLine("Find");
+                    string FindString = Console.ReadLine();
+                    Console.Clear();
+                    for (int i = 0; i < Assembler.MCCODE.Length; i++)
+                    {
+                        if(Assembler.MCCODE[i] == FindString)
+                        {
+                            Console.WriteLine("At line " + Convert.ToString(i, 16));
+                        }
+                    }
+                }
+                if (KEY.Key == ConsoleKey.E)
+                {
+                    Console.WriteLine("Find");
+                    string FindString = Console.ReadLine();
+                    Console.Clear();
+                    for (ushort i = 0; i < Assembler.MCCODE.Length; i++)
+                    {
+                        if (Assembler.MCCODE[i] == FindString)
+                        {
+                            Console.WriteLine("At line " + Convert.ToString(i, 16));
+                            CursorY = i;
+                            break;
+                        }
+                    }
                 }
             } while (EXIT == false);
         }
@@ -239,11 +283,11 @@ namespace CPUTing
             XLINEO = XLINE;
             LINEO = LINE;
         }
-        public void DUMPer(int CursorY)
+        public void DUMPer(ushort CursorY)
         {
-            for (int i = CursorY; i < Assembler.MCCODE.Length; i++)
+            for (int i = CursorY; i < CursorY + 10; i++)
             {
-                if (Assembler.MCCODE[i] != null)
+                if (!(CursorY >= 0xFFFF) && Assembler.MCCODE[i] != null)
                 {
                     Console.Write(Convert.ToString(i, 16).PadLeft(4, '0') + " ");
                     Console.Write(Assembler.MCCODE[i] + "   ");
@@ -292,8 +336,8 @@ namespace CPUTing
         }
         private void FILLCODE()
         {
-            MEM.START();
             PORTs.START();
+            MEM.START();
             CPU.START(MEM, out MEM);
             MEM.RAM = Assembler.MEMRAM;
             // todo Assembler is not working the lens and 0xFFFF + 1
@@ -321,6 +365,7 @@ namespace CPUTing
     public abstract class ConsoleMenu
     { 
         public string[] _Build = new string[] { "Build", "build", "B", "b" };
+        public string[] _BANDR = new string[] { "BAR", "bar", "q", "Q" };
         public string[] _RUN = new string[] { "Run", "run", "r", "R"};
         public string[] _Write = new string[] { "Write", "write", "w", "W" };
         public string[] _Dump = new string[] { "dump", "Dump", "d", "D" };
@@ -332,7 +377,11 @@ namespace CPUTing
         {
             for (int i = 0; i < _Build.Length; i++)
             {
-                if(_Build[i].Equals(user))
+                if(_BANDR[i].Equals(user))
+                {
+                    Build();
+                }
+                if (_Build[i].Equals(user))
                 {
                     Build();
                 }

@@ -12,6 +12,7 @@ namespace CPUTing
         public const byte FG_LESS = 2;
         public const byte FG_OVER = 3;
         public const byte FG_INTS = 4;
+        public const byte FG_PLUS = 5;
 
         ///<summary>PC Start ADDR</summary>
         public const ushort PCSTARTADDR = 0xFFF7;
@@ -25,6 +26,8 @@ namespace CPUTing
         public const ushort ConsoleBGColor = 0xFE03;
         ///<summary>Clear ADDR</summary>
         public const ushort ClearConsole = 0xFE04;
+        ///<summary>if 1 the user can get a key else never set a key</summary>
+        public const ushort GetAKey = 0xFE05;
         ///<summary>STACK POINTER ADDR</summary>
         public const ushort SP = 0xFC00;
         ///<summary>subroutine addr L</summary>
@@ -52,6 +55,7 @@ namespace CPUTing
         public byte C;
         //D REG
         public byte D;
+        INSTR LastINSTR;
         public bool BA;
         public ushort PC;
 
@@ -92,7 +96,7 @@ namespace CPUTing
             MEM.ROM[0xFFFA] = "FE00";
             MEM.ROM[0xFFFB] = "0900";
             MEM.ROM[0xFFFC] = "FE01";
-            MEM.ROM[0xFFFD] = "0800";
+            MEM.ROM[0xFFFD] = "3500";
             MEM.ROM[0xFFFE] = "2F00";
             MEM.ROM[0xFFFF] = "0000";
             MEM.RAM[SP] = 0x00;
@@ -122,6 +126,8 @@ namespace CPUTing
         }
         public void TICK(MEM MEM, PORT PORT)
         {
+            if(LastINSTR == INSTR.UINT)
+                FLAGS[FG_INTS] = 0;
             string test = "";
             test += MEM.RAM[INTH].ToString().PadLeft(2, '0'); //H
             test += MEM.RAM[INTL].ToString().PadLeft(2, '0'); //L
@@ -176,31 +182,53 @@ namespace CPUTing
 
             INSTR instr = DECODE(MEM.ROM[PC], false);
             EXE(instr, MEM, PORT);
+            LastINSTR = instr;
             PC++;
         }
-        public INSTR DECODE(string STR, bool JMP)
+        public INSTR DECODE(string STR, bool JMP, bool ZP = false, bool REG = false)
         {
             byte[] HEXBYTES;
             byte BYTES;
             ushort ADDR;
+            if (REG == true)
+            {
+                HEXBYTES = HexConverter.GetBytes(STR);
+                string REGSTR1;
+                RegInput(HEXBYTES[0], out REGSTR1);
+                string REGSTR2;
+                RegInput(HEXBYTES[1], out REGSTR2);
+                string ALL = REGSTR1 + REGSTR2;
+                ADDR = Convert.ToUInt16(ALL, 16);
+                ADDRBUS = ADDR;
+                return INSTR.NOOP;
+            }
+            if (ZP == true)
+            {
+                HEXBYTES = HexConverter.GetBytes(STR);
+                string ZPSTR;
+                RegInput(HEXBYTES, out ZPSTR);
+                ADDR = Convert.ToUInt16(ZPSTR, 16);
+                ADDRBUS = ADDR;
+                return INSTR.NOOP;
+            }
             if (JMP == false)
             {
                 string decode = STR[0].ToString() + STR[1].ToString();
                 string ARGS = STR[2].ToString() + STR[3].ToString();
-                string SUBSTR;
-                if (STR.Contains('('))
+                string SUBSTR = "";
+                if (STR.Contains('(')) // to decode a SIM
                 {
                     string[] vs = STR.Split(' ', 2);
                     SUBSTR = vs[0];
                     string HEX = vs[1].Split('(', ')')[1];
-                    HEXBYTES = HexConverter.GetBytes(HEX.Split(' '));
+                    HEXBYTES = HexConverter.GetBytes(HEX.Split(' ')); //todo \ <- this char dose not work in BZasm as a Char look in WOZMON.BZasm
                     for (int i = 0; i < HEXBYTES.Length; i++)
                     {
                         CA[i] = Convert.ToChar(HEXBYTES[i]);
                         CAL = (byte)i;
                     }
                 }
-                else
+                else //IMM
                 {
                     SUBSTR = STR;
                 }
@@ -211,7 +239,7 @@ namespace CPUTing
                 ADDRBUS = BYTES;
                 return (INSTR)Enum.Parse(typeof(INSTR), HexConverter.GetBytes(decode)[0].ToString());
             }
-            else
+            else // AIM
             {
                 _ = HexConverter.GetBytes(STR);
                 ADDR = Convert.ToUInt16(STR, 16);
@@ -219,10 +247,59 @@ namespace CPUTing
                 return INSTR.NOOP;
             }
         }
+        void RegInput(byte[] HEXBYTES, out string OUTSTR)
+        {
+            if (HEXBYTES[1] == 00)
+            {
+                OUTSTR = Convert.ToString(HEXBYTES[0], 16).PadRight(2, '0') + Convert.ToString(A, 16).PadLeft(2, '0');
+                return;
+            }
+            if (HEXBYTES[1] == 01)
+            {
+                OUTSTR = Convert.ToString(HEXBYTES[0], 16).PadRight(2, '0') + Convert.ToString(B, 16).PadLeft(2, '0');
+                return;
+            }
+            if (HEXBYTES[1] == 02)
+            {
+                OUTSTR = Convert.ToString(HEXBYTES[0], 16).PadRight(2, '0') + Convert.ToString(C, 16).PadLeft(2, '0');
+                return;
+            }
+            if (HEXBYTES[1] == 03)
+            {
+                OUTSTR = Convert.ToString(HEXBYTES[0], 16).PadRight(2, '0') + Convert.ToString(D, 16).PadLeft(2, '0');
+                return;
+            }
+            OUTSTR = "";
+        }
+        void RegInput(byte HEXBYTES, out string OUTSTR)
+        {
+            if (HEXBYTES == 00)
+            {
+                OUTSTR =  Convert.ToString(A, 16).PadLeft(2, '0');
+                return;
+            }
+            if (HEXBYTES == 01)
+            {
+                OUTSTR = Convert.ToString(B, 16).PadLeft(2, '0');
+                return;
+            }
+            if (HEXBYTES == 02)
+            {
+                OUTSTR = Convert.ToString(C, 16).PadLeft(2, '0');
+                return;
+            }
+            if (HEXBYTES == 03)
+            {
+                OUTSTR = Convert.ToString(D, 16).PadLeft(2, '0');
+                return;
+            }
+            OUTSTR = "";
+        }
         public void EXE(INSTR INSTR, MEM MEM, PORT PORTs)
         {
-            byte PORTINDEX = DATABUS;
-            byte PORTINSTR;
+            byte[] TOHEX;
+            byte PORTINDEX = 0;
+            byte PORTINSTR = 0;
             switch (INSTR)
             {
                 case INSTR.HLTC:
@@ -231,69 +308,60 @@ namespace CPUTing
                 case INSTR.NOOP:
                     break;
                 case INSTR.CALL:
-                    PC++;
-                    CALL(MEM, (ushort)(PC + 1));
+                    PC++; 
+                    PUSHPC(MEM);
                     DECODE(MEM.ROM[PC], true);
                     PC = ADDRBUS;
                     PC--;
                     break;
                 case INSTR.RESR:
-                    RESR(MEM);
+                    POPPC(MEM);
                     break;
                 case INSTR.INBY:
-                    if (DATABUS.ToString().Length == 1)
+                    if (DATABUS != 0xE0 && DATABUS != 0xF0)
                     {
-                        PORTINSTR = DATABUS;
+                        string StringBus = DATABUS.ToString();
+                        if (StringBus.Length == 1)
+                        {
+                            PORTINSTR = 0;
+                            PORTINDEX = DATABUS;
+                        }
+                        else
+                        {
+                            TOHEX = new byte[] { byte.Parse(DATABUS.ToString()[0].ToString() + DATABUS.ToString()[1].ToString()) };
+                            PORTINSTR = byte.Parse(HexConverter.GetHexString(TOHEX)[0].ToString()); //H
+                            PORTINDEX = byte.Parse(HexConverter.GetHexString(TOHEX)[1].ToString()); //L
+                        }
                     }
                     else
                     {
-                        byte[] TOHEX = { byte.Parse(DATABUS.ToString()[0].ToString() + DATABUS.ToString()[1].ToString()) };
-                        PORTINSTR = byte.Parse(HexConverter.GetHexString(TOHEX)[0].ToString()); //H
-                        PORTINDEX = byte.Parse(HexConverter.GetHexString(TOHEX)[1].ToString()); //L
+                        PORTINSTR = DATABUS;
                     }
                     switch (PORTINSTR)
                     {
                         case 0:
-                            PORTs.LOADWORD(C);
+                            PORTs.LOADTEXT(PORTINDEX);
                             break;
                         case 1:
-                            PORTs.DISPLAY();
+                                PORTs.LoadKEY(PORTINDEX, MEM);
                             break;
                         case 2:
-                            if (SR[SR_KEYHERE] == true)
-                            {
-                                PORTs.GETKEYINPUT();
-                            }
-
+                            PORTs.LoadVideo(PORTINDEX);
                             break;
                         case 3:
-                            PORTs.OUTINPUT = 0;
-                            Console.Clear();
+                            PORTs.LoadSOUND(PORTINDEX);
                             break;
-                        case 4:
-                            PORTs.OUTINPUT = 0;
-                            PORTs.CLS();
+                        case 0xe0:
+                            PORTs.InputReg = C;
+                            break;
+                        case 0xf0:
+                            LOAD(PORTs.OutputReg, Reg.C);
                             break;
                     }
                     break;
                 case INSTR.OUTB:
-                    if (DATABUS.ToString().Length == 1)
-                    {
-                        PORTINSTR = DATABUS;
-                    }
-                    else
-                    {
-                        byte[] TOHEX = { byte.Parse(DATABUS.ToString()[0].ToString() + DATABUS.ToString()[1].ToString()) };
-                        PORTINSTR = byte.Parse(HexConverter.GetHexString(TOHEX)[0].ToString()); //H
-                        PORTINDEX = byte.Parse(HexConverter.GetHexString(TOHEX)[1].ToString()); //L
-                    }
-                    switch (PORTINSTR)
-                    {
-                        case 0:
-                            //now outputing an 8 bit number aka byte
-                            LOAD(PORTs.OUTINPUT, Reg.C); // here keys in \u+001B and not ascii 0x1B
-                            break;
-                    }
+                    //now outputing an 8 bit number aka byte
+                    LOAD(PORTs.OutputReg, Reg.C); // here keys in \u+001B and not ascii 0x1B
                     break;
                 case INSTR.MOVA:
                     MOV(A, GetReg(DATABUS), out A);
@@ -301,8 +369,8 @@ namespace CPUTing
                 case INSTR.MOVB:
                     MOV(B, GetReg(DATABUS), out B);
                     break;
-                case INSTR.UCUR:
-                    UpdateCursorPos(MEM);
+                case INSTR.MOVC:
+                    MOV(C, Reg.A, out C);
                     break;
                 case INSTR.STOI:
                     PC++;
@@ -325,16 +393,12 @@ namespace CPUTing
                     LOAD(DATABUS, Reg.A);
                     break;
                 case INSTR.LOAA:
-                    PC++;
-                    DECODE(MEM.ROM[PC], true);
+                    GETADDR(MEM);
                     LODADDR(MEM, Reg.A, ADDRBUS);
-                    PC--;
                     break;
                 case INSTR.STOA:
-                    PC++;
-                    DECODE(MEM.ROM[PC], true);
+                    GETADDR(MEM);
                     STORE(MEM, Reg.A, ADDRBUS);
-                    PC--;
                     break;
                 case INSTR.DECR:
                     DECR(DATABUS);
@@ -349,16 +413,12 @@ namespace CPUTing
                     LOAD(DATABUS, Reg.B);
                     break;
                 case INSTR.LOAB:
-                    PC++;
-                    DECODE(MEM.ROM[PC], true);
+                    GETADDR(MEM);
                     LODADDR(MEM, Reg.B, ADDRBUS);
-                    PC--;
                     break;
                 case INSTR.STOB:
-                    PC++;
-                    DECODE(MEM.ROM[PC], true);
+                    GETADDR(MEM);
                     STORE(MEM, Reg.B, ADDRBUS);
-                    PC--;
                     break;
                 case INSTR.CMPB:
                     CMP(B, DATABUS);
@@ -367,16 +427,12 @@ namespace CPUTing
                     LOAD(DATABUS, Reg.C);
                     break;
                 case INSTR.LOAC:
-                    PC++;
-                    DECODE(MEM.ROM[PC], true);
+                    GETADDR(MEM);
                     LODADDR(MEM, Reg.C, ADDRBUS);
-                    PC--;
                     break;
                 case INSTR.STOC:
-                    PC++;
-                    DECODE(MEM.ROM[PC], true);
+                    GETADDR(MEM);
                     STORE(MEM, Reg.C, ADDRBUS);
-                    PC--;
                     break;
                 case INSTR.CMPC:
                     CMP(C, DATABUS);
@@ -385,16 +441,12 @@ namespace CPUTing
                     LOAD(DATABUS, Reg.D);
                     break;
                 case INSTR.LOAD:
-                    PC++;
-                    DECODE(MEM.ROM[PC], true);
+                    GETADDR(MEM);
                     LODADDR(MEM, Reg.D, ADDRBUS);
-                    PC--;
                     break;
                 case INSTR.STOD:
-                    PC++;
-                    DECODE(MEM.ROM[PC], true);
+                    GETADDR(MEM);
                     STORE(MEM, Reg.D, ADDRBUS);
-                    PC--;
                     break;
                 case INSTR.CMPD:
                     CMP(D, DATABUS);
@@ -452,16 +504,14 @@ namespace CPUTing
                     PC--;
                     break;
                 case INSTR.JUMP:
-                    PC++;
-                    DECODE(MEM.ROM[PC], true);
+                    GETADDR(MEM);
                     JMP(ADDRBUS);
                     PC--;
                     break;
                 case INSTR.JINZ:
                     if (FLAGS[FG_ZERO] == 0)
                     {
-                        PC++;
-                        DECODE(MEM.ROM[PC], true);
+                        GETADDR(MEM);
                         JMP(ADDRBUS);
                         PC--;
                     }
@@ -474,8 +524,7 @@ namespace CPUTing
                 case INSTR.JINT:
                     if (FLAGS[FG_TRUE] == 0)
                     {
-                        PC++;
-                        DECODE(MEM.ROM[PC], true);
+                        GETADDR(MEM);
                         JMP(ADDRBUS);
                         PC--;
                     }
@@ -488,8 +537,7 @@ namespace CPUTing
                 case INSTR.JIFT:
                     if (FLAGS[FG_TRUE] == 1)
                     {
-                        PC++;
-                        DECODE(MEM.ROM[PC], true);
+                        GETADDR(MEM);
                         JMP(ADDRBUS);
                         PC--;
                     }
@@ -507,16 +555,47 @@ namespace CPUTing
                 case INSTR.REIN:
                     POPPC(MEM);
                     break;
+                case INSTR.UINT:
+                    FLAGS[FG_INTS] = 1;
+                    byte INTINDEX;
+                    byte INTINSTR;
+                    if (DATABUS.ToString().Length == 1)
+                    {
+                        INTINSTR = DATABUS;
+                    }
+                    else
+                    {
+                        TOHEX = new byte[] { byte.Parse(DATABUS.ToString()[0].ToString() + DATABUS.ToString()[1].ToString()) };
+                        INTINSTR = byte.Parse(HexConverter.GetHexString(TOHEX)[0].ToString()); //H
+                        INTINDEX = byte.Parse(HexConverter.GetHexString(TOHEX)[1].ToString()); //L
+                    }
+                    UpdateINT(INTINSTR, MEM, PORTs);
+                    break;
+                case INSTR.GROM:
+                        GETADDR(MEM);
+                        GETROM(MEM, ADDRBUS);
+                    break;
                 default:
                     break;
+            }
+        }
+        public void UpdateINT(byte INSTR, MEM MEM, PORT PORT)
+        {
+            if (INSTR == 0)
+                UpdateCursorPos(MEM);
+            if (INSTR == 1)
+            {
+                if (MEM.RAM[GetAKey] == 1)
+                    if (SR[SR_KEYHERE] == true)
+                        PORT.GETKEYINPUT();
             }
         }
         public void PUSHPC(MEM MEM)
         {
             string IMMS = Convert.ToString(PC + 1).PadLeft(4, '0');
-            MEM.RAM[MEM.RAM[SP]] = byte.Parse(IMMS.Remove(2, 2)); //H
-            MEM.RAM[SP]++;
             MEM.RAM[MEM.RAM[SP]] = byte.Parse(IMMS.Remove(0, 2)); //L
+            MEM.RAM[SP]++;
+            MEM.RAM[MEM.RAM[SP]] = byte.Parse(IMMS.Remove(2, 2)); //H
             MEM.RAM[SP]++;
         }
         public void POPPC(MEM MEM)
@@ -527,7 +606,7 @@ namespace CPUTing
             MEM.RAM[SP]--;
             test += MEM.RAM[MEM.RAM[SP]].ToString().PadLeft(2, '0'); //L
             ushort ADDR = Convert.ToUInt16(test, 10);
-            PC = (ushort)(ADDR);
+            PC = (ushort)(ADDR - 1);
         }
         public void LODADDR(MEM mem, Reg reg, ushort Addr)
         {
@@ -547,6 +626,15 @@ namespace CPUTing
                     break;
                 default:
                     break;
+            }
+        }
+        public void GETROM(MEM MEM, ushort Addr)
+        {
+            if (BA == true)
+            {
+                byte[] HEX = HexConverter.GetBytes(MEM.ROM[Addr]);
+                MEM.RAM[SUPH] = HEX[0];
+                MEM.RAM[SUPL] = HEX[1];
             }
         }
         public void STORE(MEM mem, Reg reg, ushort Addr)
@@ -755,25 +843,53 @@ namespace CPUTing
             else
                 FLAGS[FG_ZERO] = 0;
         }
+        void CMPINCANDDEC(byte Reg, byte PreReg)
+        {
+            if(PreReg == 0xFF && Reg == 0)
+            {
+                FLAGS[FG_OVER] = 1;
+            }
+            else
+            {
+                FLAGS[FG_OVER] = 0;
+            }
+            if(PreReg == 0 && Reg == 0xFF)
+            {
+                FLAGS[FG_PLUS] = 1;
+            }
+            else
+            {
+                FLAGS[FG_PLUS] = 0;
+            }
+        }
         public void DECR(byte IMM)
         {
+            byte Pre = 0;
             switch (GetReg(IMM))
             {
                 case Reg.A:
                     A--;
                     CMPREGS(A);
+                    Pre = (byte)(A + 1);
+                    CMPINCANDDEC(A, Pre);
                     break;
                 case Reg.B:
                     B--;
                     CMPREGS(B);
+                    Pre = (byte)(B + 1);
+                    CMPINCANDDEC(B, Pre);
                     break;
                 case Reg.C:
                     C--;
-                    CMPREGS((byte)C);
+                    CMPREGS(C);
+                    Pre = (byte)(C + 1);
+                    CMPINCANDDEC(C, Pre);
                     break;
                 case Reg.D:
                     D--;
                     CMPREGS(D);
+                    Pre = (byte)(D + 1);
+                    CMPINCANDDEC(D, Pre);
                     break;
                 default:
                     break;
@@ -781,23 +897,32 @@ namespace CPUTing
         }
         public void INCR(byte IMM)
         {
+            byte Pre = 0;
             switch (GetReg(IMM))
             {
                 case Reg.A:
                     A++;
                     CMPREGS(A);
+                    Pre = (byte)(A - 1);
+                    CMPINCANDDEC(A, Pre);
                     break;
                 case Reg.B:
                     B++;
                     CMPREGS(B);
+                    Pre = (byte)(B - 1);
+                    CMPINCANDDEC(B, Pre);
                     break;
                 case Reg.C:
                     C++;
-                    CMPREGS((byte)C);
+                    CMPREGS(C);
+                    Pre = (byte)(C - 1);
+                    CMPINCANDDEC(C, Pre);
                     break;
                 case Reg.D:
                     D++;
                     CMPREGS(D);
+                    Pre = (byte)(D - 1);
+                    CMPINCANDDEC(D, Pre);
                     break;
                 default:
                     break;
@@ -939,6 +1064,22 @@ namespace CPUTing
             }
             FREG = Buffer;
 
+        }
+        public void GETADDR(MEM MEM)
+        {
+            PC++;
+            if(DATABUS == 0) //ASB ADDR
+            {
+                DECODE(MEM.ROM[PC], true);
+            }
+            else if(DATABUS == 1) //ZP ADDR
+            {
+                DECODE(MEM.ROM[PC], false, true);
+            }
+            else if(DATABUS == 2)
+            {
+                DECODE(MEM.ROM[PC], false, true);
+            }
         }
         public Reg GetReg(byte IMM)
         {
