@@ -1,9 +1,38 @@
-﻿#using std
-POKE 0x00 0xFE00
-POKE 0x14 0xFE01
-POKE 0x09 0xFE02
-POKE 0x01 0xFE04
-POKE 0x00 0xFE04
-POKE 0x01 0x7100
-@test 0f
-getkey ESC test
+﻿var InputText = "" : string
+Func Reset
+
+	port::Write CHR '\'
+	port::Write CHR '\n'
+	InputText = ""
+
+endFunc
+
+Func GetLine
+	
+	GetLine InputText
+
+	if InputText == "ent"
+		Enter
+	end
+	if InputText == "back"
+		BackSpace
+	end
+	if InputText == "esc"
+		Escape
+	end
+
+	:do something with the InputText in some func or something 
+
+endFunc
+
+Func Enter
+
+endFunc
+
+Func BackSpace
+
+endFunc
+
+Func Escape
+
+endFunc

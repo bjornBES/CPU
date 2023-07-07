@@ -1,46 +1,72 @@
-﻿variables
-@ name (byte)value
-@ define NAME value
+﻿Loop
+	while
 
-statements
+	variables XX const
+	const XX variables
+	const XX const
+	variables XX variables
+Cmp statement
 	if
-		compare 2 things 
-	endif
-		is where the if statement endeds
 
-	if true|1 == test
+	variables XX const
+	const XX variables
+	const XX const
+	variables XX variables
+variables
+	var
+
+	local		not get them in other files
+	global		where you can get them in other files
+
+	var name = value
+	var name = value : type
+
+	writes the value into RAM
+	inc a pointer
+IO
+	port::
+		func
+			Write ! text
+			GetKey Ret KeyChar
+			GetLine Ret Line
+			Move ! PosX : byte, PosY : byte
+			...
 
 operators
-	==
-		equals to		a == b
-	!=
-		not equals		a != b
-	<
-		less then		a < b
-	>
-		greater then	a > b
-	--
-		dec by one
-	++
-		inc by one
+	==	T == 1	JIFT
+	!=	T == 0	JINT
+	<	L == 1	JIFL
+	>	L == 0	JINL
+	WIP
+	<=	T == 1 && L == 1
 
-STD IO
-	print char[]
-	getkey byte(0-255) outputVar
-	
+data types
+	char	'Value'	index 0
+	string	"Value"	index 1
+	byte	91		index 2
 
-using libs
-	std		for io
+Func
+	Func Name
+	Func Name ! arg1 
+	Func Name ! arg1 : type 
 
-LOOPs
-	DO 1
-	END
-	DO var operators var/imm
-	END
+	local		not get them in other files
+	global		where you can get them in other files
 
-Cursor
-	updates the cursors pos
+	ref
+	Name
 
-POKE 
-	POKE byte addr
-	pokes in to mem
+	or if it has args
+
+	Name ! ArgInput
+
+	ArgInput
+		Const
+		local
+		global
+
+	return
+		ret value
+
+Inporting files 
+	inport : "name.BZ"

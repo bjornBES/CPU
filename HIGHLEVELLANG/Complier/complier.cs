@@ -1,299 +1,187 @@
 ﻿using CrypticWizard.HexConverter;
 using System;
-using CPUTing.HIGHLEVELLANG.Complier.Commands;
+using CPUTing.HIGHLEVELLANG.Complier;
 
 namespace CPUTing.HIGHLEVELLANG.Complier
 {
     public class Complier : CompilerCommands
     {
-        private const string TRUE = "1";
-        private const string FALSE = "0";
-        private int ASMCODELen;
-        private string[] BZCodeS;
-        private string erorr = "";
-        int PrintLableIndex = 0;
-        int LOOPLableIndex = 0;
-        int IFLableIndex = 0;
-        int KEYLableIndex = 0;
-        public void Start(string[] BZCode, bool GetLeng)
+        string[] Code;
+        public string[] RawCode;
+        public string[] AsmCode = new string[0xFFFF + 1];
+        public int ASMIndex = 0; 
+        public string Error;
+        public void Start(string[] BZCode)
         {
-            PrintLableIndex = 0;
-            LOOPLableIndex = 0;
-            IFLableIndex = 0;
-            KEYLableIndex = 0;
-            erorr = "";
-            BZCodeS = BZCode;
-            if (GetLeng == false)
+            Code = BZCode;
+            RawCode = new string[Code.Length];
+            for (int i = 0; i < Code.Length; i++)
             {
-                ASMCODEPOINTER = 0;
-                ASMCODE = new string[ASMCODELen + 1];
-                ASMCODE[ASMCODEPOINTER] = ".ORG &0000";
-                ASMCODEPOINTER++;
+                RemoveComms(i);
+            }
+            for (int i = 0; i < RawCode.Length; i++)
+            {
+                if (RawCode[i] != "\t" && RawCode[i] != "" && RawCode[i] != " ")
+                    GetCode(i);
+            }
+        }
+        public void RemoveComms(int i)
+        {
+            if(Code[i].Contains(COMM))
+            {
+                int Index = Code[i].IndexOf(COMM);
+                RawCode[i] = Code[i].Remove(Index, Code[i].Length);
             }
             else
             {
-                ASMCODELen = 0;
+                if(Code[i] != "\t" && Code[i] != "" && Code[i] != " ")
+                    RawCode[i] = Code[i];
+                return;
             }
+        }
+        string Ops;
+        string Name = "";
+        int DecNummber;
+        bool IsDec;
+        bool IsHex;
+        bool IsBin;
+        bool IsString;
+        bool IsChar;
+        string Operator = "";
+        string VarType = "";
+        object Tempcommands;
+        bool Parsed;
+        Commands commands;
+        public void GetCode(int i)
+        {
+            string[] Line = RawCode[i].Split(' ');
+            Ops = Line[0];
 
-            for (int i = 0; i < Variable.variables.Length; i++)
-            {
-                Variable.variables[i] = new VariableTemp
-                {
-                    VariableName = "",
-                    VariableValue = ""
-                };
-            }
-            string OPCode = "";
-            string ARGS = "";
-            string ADDR = "";
-            for (int i = 0; i < BZCodeS.Length; i++)
-            {
-                BZCodeS[i] = BZCodeS[i].Replace("\t", "");
-                BZCodeS[i] = BZCodeS[i].Replace("true", TRUE);
-                BZCodeS[i] = BZCodeS[i].Replace("TRUE", TRUE);
-                BZCodeS[i] = BZCodeS[i].Replace("false", FALSE);
-                BZCodeS[i] = BZCodeS[i].Replace("FALSE", FALSE);
-                bool NotCommand = false;
-                if (BZCodeS[i].Contains(Commands))
-                {
-                    int index = BZCodeS[i].IndexOf(Commands);
-                    BZCodeS[i] = BZCodeS[i].Remove(index, BZCodeS[i].Length);
-                }
-                if (BZCodeS[i].Contains(Var) == true)
-                {
-                    NotCommand = true;
-                    if (GetLeng == false)
-                    {
-                        // setting a new var
-                        BZCodeS[i] = BZCodeS[i].Remove(0, 1);
-                        OPCode = BZCodeS[i].Split(' ', 2)[0]; //name
-                        ARGS = BZCodeS[i].Split(' ', 2)[1]; //value
+            FindCommand(Line, i);
 
-                        ASMCODE[ASMCODEPOINTER] = Variable.SetNewVariable(ARGS, OPCode);
-                        ASMCODEPOINTER++;
-                    }
-                    else
+            switch (commands)
+            {
+                case Commands.var:
+                    break;
+                case Commands.While:
+                    break;
+                case Commands.If:
+                    break;
+                case Commands.func:
+                    break;
+                case Commands.inport:
+                    break;
+                case Commands.port:
+                    if(Ops.Contains(PortExt) == false)
                     {
-                        ASMCODELen++;
+                        Error += "Port func not found line " + i + " " + Line[i] + " \n";
+                        return;
                     }
-                }
-                else if (BZCodeS[i].Contains(Using) == true)
-                {
-                    NotCommand = true;
-                    // loading a lib in
-                    string[] LibNames = Enum.GetNames(typeof(Libs));
-                    Libs libs = Libs.none;
-                    for (int l = 0; l < LibNames.Length; l++)
+                    string PortCommand = Ops.Split(PortExt)[1];
+                    object TempportCommand;
+                    PortCommands portCommands = PortCommands.none;
+                    Parsed = Enum.TryParse(typeof(PortCommands), PortCommand, out TempportCommand);
+                    if(Parsed == true)
                     {
-                        if (BZCodeS[i].Split(' ')[1] == LibNames[l])
-                            libs = (Libs)Enum.Parse(typeof(Libs), LibNames[l]);
+                        portCommands = (PortCommands)TempportCommand;
                     }
-                    LOADLIB(libs);
-                }
-                else if (BZCodeS[i].Contains("--") || BZCodeS[i].Contains("++"))
-                {
-                    NotCommand = true;
-                    // for inc a var or dec a var
-                    if (GetLeng == true)
+                    switch (portCommands)
                     {
-                        ASMCODELen++;
-                        ASMCODELen++;
-                        ASMCODELen++;
-                    }
-                    else
-                    {
-                        if (BZCodeS[i].Contains("--"))
-                        {
-                            Variable.DecVariable(BZCodeS[i].Remove(BZCodeS[i].Length - 2, 2));
-                        }
-                        if (BZCodeS[i].Contains("++"))
-                        {
-                            Variable.IncVariable(BZCodeS[i].Remove(BZCodeS[i].Length - 2, 2));
-                        }
-                        for (int l = 0; l < Variable.GetLen(); l++)
-                        {
-                            ASMCODE[ASMCODEPOINTER] = Variable.GetCode(l);
-                            ASMCODEPOINTER++;
-                        }
-                    }
-                }
-                if (BZCodeS[i] != "" && NotCommand == false)
-                {
-                    if (BZCodeS[i].Contains(' '))
-                    {
-                        OPCode = BZCodeS[i].Split(' ', 2)[0];
-                        ARGS = BZCodeS[i].Split(' ', 2)[1];
-                        if (ARGS.Contains(' '))
-                        {
-                            ADDR = ARGS.Split(' ')[1];
-                        }
-                    }
-                    else
-                    {
-                        if (BZCodeS[i] != "")
-                        {
-                            OPCode = BZCodeS[i];
-                        }
-                    }
-                    Enum.TryParse(typeof(CODEs), OPCode, out object cODEs);
-                    switch ((CODEs)cODEs)
-                    {
-                        case CODEs.none:
-                            break;
-                        case CODEs.print:
-                            if (usinglib[0] == true)
+                        case PortCommands.Write:
+                            if(IsChar)
                             {
-                                if (GetLeng == true)
-                                {
-                                    ASMCODELen += Print.GetLen();
-                                }
-                                else
-                                {
-                                    Print.print(ARGS, PrintLableIndex);
-                                    for (int l = 0; l < Print.printCode.Length; l++)
-                                    {
-                                        ASMCODE[ASMCODEPOINTER] = Print.ASMOUT(l);
-                                        ASMCODEPOINTER++;
-                                    }
-                                    PrintLableIndex++;
-                                }
+                                AsmCode[ASMIndex] = "INBY #08";
+                                ASMIndex++;
+                                AsmCode[ASMIndex] = "LODC \'" + Name.Split(Char)[1] + "\'";
+                                ASMIndex++;
+                                AsmCode[ASMIndex] = "INBY #E0";
+                                ASMIndex++;
+                                AsmCode[ASMIndex] = "INBY #00";
+                                ASMIndex++;
+                                AsmCode[ASMIndex] = "INBY #06";
+                                ASMIndex++;
                             }
-                            else
+                            if(IsString)
                             {
-                                erorr = "Missing lib at line " + i + ",";
-                                return;
+                                AsmCode[ASMIndex] = "PUHS " + String + Name.Split(String)[1] + String;
+                                ASMIndex++;
+                                AsmCode[ASMIndex] = "*PRINT_STRING_FUN:";
+                                ASMIndex++;
+                                AsmCode[ASMIndex] = "POPR #02";
+                                ASMIndex++;
+                                AsmCode[ASMIndex] = "INBY #E0";
+                                ASMIndex++;
+                                AsmCode[ASMIndex] = "DECR #00";
+                                ASMIndex++;
+                                AsmCode[ASMIndex] = "INBY #05";
+                                ASMIndex++;
+                                AsmCode[ASMIndex] = "JINZ PRINT_STRING_FUN";
+                                ASMIndex++;
+                                AsmCode[ASMIndex] = "INBY #05";
+                                ASMIndex++;
                             }
                             break;
-                        case CODEs.POKE:
-                            if (GetLeng == true)
-                                ASMCODELen++;
-                            else
-                            {
-                                ASMCODE[ASMCODEPOINTER] = "\tSTOI #" + ARGS.Split(' ')[0].Remove(0, 2) + " &" + ADDR.Remove(0, 2);
-                                ASMCODEPOINTER++;
-                            }
+                        case PortCommands.GetKey:
                             break;
-                        case CODEs.DO:
-                            DOLOOP.DOLoop(BZCodeS, i, ARGS, LOOPLableIndex);
-                            if (GetLeng == true)
-                            {
-                                ASMCODELen = DOLOOP.GetLen(ASMCODELen);
-                            }
-                            else
-                            {
-                                for (int l = 0; l < DOLOOP.GETLEN(); l++)
-                                {
-                                    ASMCODE[ASMCODEPOINTER] = DOLOOP.CODEOUT(l);
-                                    ASMCODEPOINTER++;
-                                }
-                                LOOPLableIndex++;
-                            }
+                        case PortCommands.GetLine:
                             break;
-                        case CODEs.END:
-                            if (GetLeng == true)
-                            {
-                                ASMCODELen += DOLOOP.GETLEN();
-                            }
-                            else
-                            {
-                                LOOPLableIndex--;
-                                ASMCODE[ASMCODEPOINTER] = DOLOOP.ENDCode.Split('|')[0];
-                                ASMCODEPOINTER++;
-                                ASMCODE[ASMCODEPOINTER] = DOLOOP.ENDCode.Split('|')[1];
-                                ASMCODEPOINTER++;
-                                ASMCODE[ASMCODEPOINTER] = DOLOOP.ENDCode.Split('|')[2];
-                                ASMCODEPOINTER++;
-                            }
-                            break;
-                        case CODEs.Cursor:
-                            if (GetLeng == true)
-                            {
-                                ASMCODELen++;
-                            }
-                            else
-                            {
-                                ASMCODE[ASMCODEPOINTER] = "\tUCHR";
-                                ASMCODEPOINTER++;
-                            }
-                            break;
-                        case CODEs.IF:
-                            IF.IfSta(BZCodeS, i, ARGS, IFLableIndex);
-                            if (GetLeng == true)
-                            {
-                                ASMCODELen = IF.GetLen(ASMCODELen);
-                            }
-                            else
-                            {
-                                for (int l = 0; l < IF.GETLEN(); l++)
-                                {
-                                    ASMCODE[ASMCODEPOINTER] = IF.CODEOUT(l);
-                                    ASMCODEPOINTER++;
-                                }
-                                LOOPLableIndex++;
-                            }
-                            break;
-                        case CODEs.ENDIF:
-                            if (GetLeng == true)
-                            {
-                                ASMCODELen += IF.GETLEN();
-                            }
-                            else
-                            {
-                                ASMCODE[ASMCODEPOINTER] = IF.ENDCode.Split('|')[0];
-                                ASMCODEPOINTER++;
-                                ASMCODE[ASMCODEPOINTER] = IF.ENDCode.Split('|')[1];
-                                ASMCODEPOINTER++;
-                            }
-                            break;
-                        case CODEs.getkey:
-                            GetKEY.GetKey(ARGS, KEYLableIndex);
-                            if (GetLeng == true)
-                            {
-                                ASMCODELen += GetKEY.GetLen();
-                            }
-                            else
-                            {
-                                for (int k = 0; k < GetKEY.GetLen(); k++)
-                                {
-                                    ASMCODE[ASMCODEPOINTER] = GetKEY.GetCode(k);
-                                    ASMCODEPOINTER++;
-                                }
-                            }
-                            KEYLableIndex++;
+                        case PortCommands.Move:
                             break;
                         default:
+                            Error += "command not found line " + i + " " + Line[i] + "\n";
                             break;
                     }
-                }
+                    break;
+                default:
+                    Error += "command not found line " + i + " " + Line[i] + "\n";
+                    break;
             }
-            if (GetLeng == false)
+        }
+        public void FindCommand(string[] Line, int i)
+        {
+            if (Line.Length == 2)
             {
-                for (int i = 0; i < ASMCODE.Length; i++)
-                {
-                    if (ASMCODE[i] == null)
-                        ASMCODE[i] = "\tHLTC";
-                }
+                Name = Line[1];
             }
-        }
-        public void GetCode(out string[] Code)
-        {
-            Code = ASMCODE;
-        }
-        public int GetCodeCharLen()
-        {
-            int OUt = 0;
-            for (int i = 0; i < ASMCODELen; i++)
+            if (Line.Length == 4)
             {
-                for (int c = 0; c < ASMCODE[i].Length; c++)
+                if (Line[3] == "")
                 {
-                    OUt++;
+                    IsDec = int.TryParse(Line[3], out DecNummber);
+                    IsHex = Line[3].Contains(HexStart);
+                    IsBin = Line[3].Contains(BinStart);
+                    IsString = Line[3].Contains(String);
+                    IsChar = Line[3].Contains(Char);
+                    bool Result = IsDec | IsHex | IsBin | IsString | IsChar;
+                    if (Result == false)
+                    {
+                        Error += "type not found line " + i + " " + Line[i] + "\n";
+                    }
                 }
+                Operator = Line[2];
             }
-            return OUt;
-        }
-        public void GetErorrs(out string Code)
-        {
-            Code = erorr;
+            if (Line.Length > 4)
+            {
+                VarType = Line[5];
+            }
+            Parsed = Enum.TryParse(typeof(Commands), Ops, out Tempcommands);
+
+            if (Parsed == false)
+                Parsed = Enum.TryParse(typeof(Commands), Ops.ToLower(), out Tempcommands);
+
+            if (Parsed == false)
+                Parsed = Enum.TryParse(typeof(Commands), Ops.ToUpper(), out Tempcommands);
+
+            if (Parsed == true)
+            {
+                commands = (Commands)Tempcommands;
+            }
+            else
+            {
+                Error += "Command can not be found line " + i + " " + RawCode[i] + "\n";
+                return;
+            }
+
         }
     }
 }

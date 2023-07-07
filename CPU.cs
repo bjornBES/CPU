@@ -1,5 +1,6 @@
 ﻿using CrypticWizard.HexConverter;
 using System;
+using System.Numerics;
 namespace CPUTing
 {
     public struct CPU
@@ -13,6 +14,7 @@ namespace CPUTing
         public const byte FG_OVER = 3;
         public const byte FG_INTS = 4;
         public const byte FG_PLUS = 5;
+        public const byte FG_CARR = 6;
 
         ///<summary>PC Start ADDR</summary>
         public const ushort PCSTARTADDR = 0xFFF7;
@@ -308,7 +310,7 @@ namespace CPUTing
                 case INSTR.NOOP:
                     break;
                 case INSTR.CALL:
-                    PC++; 
+                    PC++;
                     PUSHPC(MEM);
                     DECODE(MEM.ROM[PC], true);
                     PC = ADDRBUS;
@@ -343,7 +345,7 @@ namespace CPUTing
                             PORTs.LOADTEXT(PORTINDEX);
                             break;
                         case 1:
-                                PORTs.LoadKEY(PORTINDEX, MEM);
+                            PORTs.LoadKEY(PORTINDEX, MEM);
                             break;
                         case 2:
                             PORTs.LoadVideo(PORTINDEX);
@@ -504,48 +506,16 @@ namespace CPUTing
                     PC--;
                     break;
                 case INSTR.JUMP:
-                    GETADDR(MEM);
-                    JMP(ADDRBUS);
-                    PC--;
+                    Jump(MEM, 1);
                     break;
                 case INSTR.JINZ:
-                    if (FLAGS[FG_ZERO] == 0)
-                    {
-                        GETADDR(MEM);
-                        JMP(ADDRBUS);
-                        PC--;
-                    }
-                    else
-                    {
-                        PC++;
-                    }
-
+                    Jump(MEM, 0, FG_ZERO);
                     break;
                 case INSTR.JINT:
-                    if (FLAGS[FG_TRUE] == 0)
-                    {
-                        GETADDR(MEM);
-                        JMP(ADDRBUS);
-                        PC--;
-                    }
-                    else
-                    {
-                        PC++;
-                    }
-
+                    Jump(MEM, 0, FG_TRUE);
                     break;
                 case INSTR.JIFT:
-                    if (FLAGS[FG_TRUE] == 1)
-                    {
-                        GETADDR(MEM);
-                        JMP(ADDRBUS);
-                        PC--;
-                    }
-                    else
-                    {
-                        PC++;
-                    }
-
+                    Jump(MEM, 1, FG_TRUE);
                     break;
                 case INSTR.INTR:
                     PUSHPC(MEM);
@@ -571,12 +541,55 @@ namespace CPUTing
                     }
                     UpdateINT(INTINSTR, MEM, PORTs);
                     break;
+                case INSTR.ROLR:
+                    Rotate(DATABUS, true, false);
+                    break;
+                case INSTR.RORR:
+                    Rotate(DATABUS, false, false);
+                    break;
+                case INSTR.JIFC:
+                    Jump(MEM, 1, FG_CARR);
+                    break;
+                case INSTR.JINO:
+                    Jump(MEM, 0, FG_OVER);
+                    break;
                 case INSTR.GROM:
-                        GETADDR(MEM);
-                        GETROM(MEM, ADDRBUS);
+                    GETADDR(MEM);
+                    GETROM(MEM, ADDRBUS);
+                    break;
+                case INSTR.LRLR:
+                    Rotate(DATABUS, true, true);
+                    break;
+                case INSTR.LRRR:
+                    Rotate(DATABUS, false, true);
+                    break;
+                case INSTR.LODF:
+                    LODF(DATABUS);
                     break;
                 default:
                     break;
+            }
+        }
+        public void Jump(MEM MEM, byte result, byte Flag = 8)
+        {
+            if (Flag >= 8)
+            {
+                GETADDR(MEM);
+                JMP(ADDRBUS);
+                PC--;
+            }
+            else
+            {
+                if (FLAGS[Flag] == result)
+                {
+                    GETADDR(MEM);
+                    JMP(ADDRBUS);
+                    PC--;
+                }
+                else
+                {
+                    PC++;
+                }
             }
         }
         public void UpdateINT(byte INSTR, MEM MEM, PORT PORT)
@@ -731,10 +744,12 @@ namespace CPUTing
             if (REG + IMM > 0xFF || REG + IMM < 0x00)
             {
                 FLAGS[FG_OVER] = 1;
+                FLAGS[FG_CARR] = 1;
             }
             else
             {
                 FLAGS[FG_OVER] = 0;
+                FLAGS[FG_CARR] = 0;
             }
         }
         public void UpdateCursorPos(MEM MEM)
@@ -835,6 +850,19 @@ namespace CPUTing
                 default:
                     break;
             }
+        }
+        public void LODF(byte Imm)
+        {
+            string Bin = Convert.ToString(Imm, 2);
+            for (int i = 0; i < FLAGS.Length; i++)
+            {
+                FLAGS[i] = 0;
+            }
+            for (int i = 0; i < Bin.Length; i++)
+            {
+                FLAGS[i] = byte.Parse(Bin[i].ToString());
+            }
+
         }
         void CMPREGS(byte Reg)
         {
@@ -1018,25 +1046,18 @@ namespace CPUTing
         }
         public void CMPF(byte imm)
         {
-            string SFLAGS = "";
-            for (int i = 0; i < FLAGS.Length; i++)
+            string Simm = Convert.ToString(imm, 2);
+            byte result;
+            for (int i = 0; i < Simm.Length; i++)
             {
-                SFLAGS += FLAGS[i].ToString();
-            }
-            string ByteString = Convert.ToString(imm, 2).PadLeft(8, '0');
-            for (int i = 0; i < SFLAGS.Length; i++)
-            {
-                if (SFLAGS[i] == '0' && SFLAGS[i] == '0')
+                result = (byte)(byte.Parse(Simm[i].ToString()) & FLAGS[i]);
+                if(result == 1)
                 {
-                    FLAGS[FG_TRUE] = 0;
+                    FLAGS[FG_TRUE] = 1;
                 }
                 else
                 {
-                    if (ByteString[i] == SFLAGS[i])
-                    {
-                        FLAGS[FG_TRUE] = 1;
-                        break;
-                    }
+                    FLAGS[FG_TRUE] = 0;
                 }
             }
         }
@@ -1064,6 +1085,50 @@ namespace CPUTing
             }
             FREG = Buffer;
 
+        }
+        public void Rotate(byte Reg, bool left, bool Logical)
+        {
+            switch (GetReg(Reg))
+            {
+                case CPUTing.Reg.A:
+                    A = rot(A, left, Logical);
+                    break;
+                case CPUTing.Reg.B:
+                    B = rot(B, left, Logical);
+                    break;
+                case CPUTing.Reg.C:
+                    C = rot(C, left, Logical);
+                    break;
+                case CPUTing.Reg.D:
+                    D = rot(D, left, Logical);
+                    break;
+            }
+        }
+        public byte rot(byte Reg, bool left, bool Logical)
+        {
+            if (Logical == false)
+            {
+                if (left == true)
+                {
+                    return (byte)BitOperations.RotateLeft(Reg, 1);
+                }
+                else
+                {
+                    return (byte)BitOperations.RotateRight(Reg, 1);
+                }
+            }
+            if (Logical == true)
+            {
+                if (left == true)
+                {
+                    return (byte)(Reg >> 24 ^ Reg & 0xFFFFFF);
+                }
+                else
+                {
+                    return (byte)(Reg << 24 ^ Reg & 0xFFFFFF);
+                }
+            }
+            return 0;
         }
         public void GETADDR(MEM MEM)
         {

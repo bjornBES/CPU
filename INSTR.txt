@@ -1,4 +1,4 @@
-﻿0x00	HLTC		SR.R = 0
+﻿0x00	HLTC	IMM	SR.R = 0
 0x01	NOOP	
 0x02	CALL	AIM	PUSAD, PUSAD, PC = AIM
 0x03	RESR		POPAD, POPAD, PC = ADDR
@@ -34,7 +34,7 @@
 0x21	*SUBI	IMM A - IMM
 0x22	*ADDR	IMM A + REG[IMM]
 0x23	*SUBR	IMM A - REG[IMM]
-0x24	*CMPF	IMM IMM & F ?1 | T = 1	
+0x24	*CMPF	IMM IMM & F = 1 | T = 1 ! T = 0	
 0x25	*ANDI	IMM	A = IMM & A
 0x26	*NOTI	IMM	A = !IMM
 0x27	*ORIM	IMM	A = IMM | A
@@ -54,12 +54,12 @@
 0x35	*UINT	IMM FUNVECTOR[Imm]
 0x36	ROLR	IMM REG[IMM] >> shift 1 bit to the left
 0x37	RORR	IMM REG[IMM] << shift 1 bit to the right
-0x38	JIFP	AIM ?P == 1 | PC = AIM
-0x39	JINP	AIM ?P == 0 | PC = AIM
+0x38	JIFC	AIM ?C == 1 | PC = AIM
+0x39	JINO	AIM ?O == 0 | PC = AIM
 0x3A	GROM	AIM RAM[SUBL] = RAM[AIM].L & RAM[SUBH] = RAM[AIM].H
-0x3B
-0x3C
-0x3D
+0x3B	LRLR	IMM	REG[IMM] >> shift 1 bit to the left + C
+0x3C	LRRR	IMM	REG[IMM] << shift 1 bit to the right + C
+0x3D	LODF	IMM F = IMM 
 0x3E
 0x3F
 0x40

@@ -10,8 +10,8 @@ namespace CPUTing
         private PORT PORTs;
         private CPU CPU;
         private MEM MEM;
+        private Complier Complier;
         private readonly Assembler Assembler;
-        public Complier Complier;
         private string[] code;
         private readonly bool useCompiler = false;
         private readonly string BMasmpath = "D:/2019/repos/CPUTing/BMASM/PROGRAM.BMasm";
@@ -37,6 +37,7 @@ namespace CPUTing
             Console.Clear();
             UPDATE();
         }
+        string[] ASSOPS;
         private void UPDATE()
         {
             Console.SetWindowSize(40, 20);
@@ -46,11 +47,22 @@ namespace CPUTing
                 Console.Clear();
                 Console.SetCursorPosition(0, 19);
                 string User = Console.ReadLine();
+                if(User.Contains(' '))
+                {
+                    ASSOPS = User.Split(' ');
+                }
                 GetFuns(User);
             }
         }
         public override void Build()
         {
+            AssemblerOps.UseRegs = true;
+            AssemblerOps.UseDots = true;
+            AssemblerOps.UseChars = true;
+            AssemblerOps.UseStrings = true;
+            AssemblerOps.UseKeyTags = true;
+            AssemblerOps.UseLables = true;
+            AssemblerOps.UseVars = true;
             Assembler.Reset();
             if (useCompiler == true)
             {
@@ -60,7 +72,27 @@ namespace CPUTing
             {
                 RUNRAWCODE();
             }
+            /*
+            for (int i = 0; i < ASSOPS.Length; i++)
+            {
+                if(ASSOPS[i] == "-I")
+                {
 
+                }
+                if (ASSOPS[i] == "-o")
+                {
+
+                }
+                if (ASSOPS[i] == "-F")
+                {
+                    //formats in AssmblerOps.txt
+                }
+                if (ASSOPS[i] == "-z")
+                {
+
+                }
+            }
+            */
             Assembler.Start();
 
             if(Assembler.error == "")
@@ -265,6 +297,77 @@ namespace CPUTing
                 }
             } while (EXIT == false);
         }
+        public override void DumpRam()
+        {
+            bool EXIT = false;
+            ushort CursorY = 0;
+            ConsoleKeyInfo KEY;
+            do
+            {
+                KEY = Console.ReadKey();
+                Console.Clear();
+                DUMPerRam(CursorY);
+                if (KEY.Key == ConsoleKey.Escape)
+                {
+                    EXIT = true;
+                }
+                if (CursorY != 0 && KEY.Key == ConsoleKey.UpArrow)
+                {
+                    CursorY--;
+                }
+                if (CursorY != Assembler.MEMRAM.Length - 10 && KEY.Key == ConsoleKey.DownArrow)
+                {
+                    CursorY++;
+                }
+                if (CursorY >= 0xFFFF - 10)
+                {
+                    CursorY = 0xFFFF - 10;
+                }
+                if (KEY.Key == ConsoleKey.J)
+                {
+                    Console.WriteLine("Write a line number");
+                    string JumpLine = Console.ReadLine();
+                    ushort line;
+                    if (JumpLine.Contains('#'))
+                    {
+                        line = Convert.ToUInt16(JumpLine.Remove(0, 1), 16);
+                    }
+                    else
+                    {
+                        line = ushort.Parse(JumpLine);
+                    }
+                    CursorY = line;
+                }
+                if (KEY.Key == ConsoleKey.F)
+                {
+                    Console.WriteLine("Find value");
+                    string FindString = Console.ReadLine();
+                    Console.Clear();
+                    for (int i = 0; i < Assembler.MEMRAM.Length; i++)
+                    {
+                        if (Assembler.MEMRAM[i] == byte.Parse(FindString))
+                        {
+                            Console.WriteLine("At line " + Convert.ToString(i, 16));
+                        }
+                    }
+                }
+                if (KEY.Key == ConsoleKey.E)
+                {
+                    Console.WriteLine("Find");
+                    string FindString = Console.ReadLine();
+                    Console.Clear();
+                    for (ushort i = 0; i < Assembler.MEMRAM.Length; i++)
+                    {
+                        if (Assembler.MEMRAM[i] == byte.Parse(FindString))
+                        {
+                            Console.WriteLine("At line " + Convert.ToString(i, 16));
+                            CursorY = i;
+                            break;
+                        }
+                    }
+                }
+            } while (EXIT == false);
+        }
         public override void Exit()
         {
             RUN = false;
@@ -295,6 +398,18 @@ namespace CPUTing
                 }
             }
         }
+        public void DUMPerRam(ushort CursorY)
+        {
+            for (int i = CursorY; i < CursorY + 10; i++)
+            {
+                if (!(CursorY >= 0xFFFF) && Assembler.MEMRAM[i].ToString() != null)
+                {
+                    Console.Write(Convert.ToString(i, 16).PadLeft(4, '0') + " ");
+                    Console.Write(Convert.ToString(Assembler.MEMRAM[i], 16) + "   ");
+                    Console.WriteLine("");
+                }
+            }
+        }
         private void RUNRAWCODE()
         {
             code = File.ReadAllText(BMasmpath).Split("\r\n");
@@ -307,17 +422,17 @@ namespace CPUTing
         void DoCompiler()
         {
             code = File.ReadAllText(BZpath).Split("\r\n");
-            Complier.Start(code, true);
+            Complier.Start(code);
             code = File.ReadAllText(BZpath).Split("\r\n");
-            Complier.Start(code, false);
+            //Complier.Start(code, false);
         }
         string[] ASMCODE;
         string ERORRS;
         private void RUNCOMPILER()
         {
             DoCompiler();
-            Complier.GetCode(out ASMCODE);
-            Complier.GetErorrs(out ERORRS);
+            //Complier.GetCode(out ASMCODE);
+            //Complier.GetErorrs(out ERORRS);
             if (ERORRS == "")
             {
                 for (int i = 0; i < code.Length; i++)
@@ -364,12 +479,12 @@ namespace CPUTing
     }
     public abstract class ConsoleMenu
     { 
-        public string[] _Build = new string[] { "Build", "build", "B", "b" };
-        public string[] _BANDR = new string[] { "BAR", "bar", "q", "Q" };
-        public string[] _RUN = new string[] { "Run", "run", "r", "R"};
-        public string[] _Write = new string[] { "Write", "write", "w", "W" };
-        public string[] _Dump = new string[] { "dump", "Dump", "d", "D" };
-        public string[] _Exit = new string[] { "Exit", "exit", "E", "e" };
+        public string[] _Build = new string[] { "Build", "build", "B", "b", "bfc", "Bjc" };
+        public string[] _RUN = new string[] { "Run", "run", "r", "R", "RUN", "ruN"};
+        public string[] _Write = new string[] { "Write", "write", "w", "W", "WRITE", "writE" };
+        public string[] _Dump = new string[] { "dump", "Dump", "d", "D", "DUMP", "dumP" };
+        public string[] _DumpRam = new string[] { "dumpram", "DumpRam", "dr", "DR", "DUMPRAM", "dumpraM" };
+        public string[] _Exit = new string[] { "Exit", "exit", "E", "e", "exiT", "EXIT" };
         public void Start()
         {
         }
@@ -377,10 +492,6 @@ namespace CPUTing
         {
             for (int i = 0; i < _Build.Length; i++)
             {
-                if(_BANDR[i].Equals(user))
-                {
-                    Build();
-                }
                 if (_Build[i].Equals(user))
                 {
                     Build();
@@ -397,6 +508,10 @@ namespace CPUTing
                 {
                     Dump();
                 }
+                if (_DumpRam[i].Equals(user))
+                {
+                    DumpRam();
+                }
                 if (_Exit[i].Equals(user))
                 {
                     Exit();
@@ -407,6 +522,7 @@ namespace CPUTing
         public abstract void Run();
         public abstract void Write();
         public abstract void Dump();
+        public abstract void DumpRam();
         public abstract void Exit();
     }
 }

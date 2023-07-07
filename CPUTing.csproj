@@ -9,4 +9,8 @@
     <PackageReference Include="CrypticWizard.HexConverter" Version="0.2.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="HIGHLEVELLANG\Complier\Commands\" />
+  </ItemGroup>
+
 </Project>

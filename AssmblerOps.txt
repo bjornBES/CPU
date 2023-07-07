@@ -1,0 +1,23 @@
+﻿B -I filename.bmasm -o filename.obj -F format
+Bfc -i inputfile.bmasm -o outputfile.obj -F format -z (1-5)
+B -F format
+
+-I
+	input asm file
+
+-o 
+	output that is the obj code / mach code
+	if emty makes a new file in the -I dir
+
+-f
+	format
+		UseRegs		-UseR
+		UseDots		-UseDCommands
+		UseChars	-UseCharStrings
+		UseStrings	-UseStrings
+		UseKeyTags	-UseKeyTags
+		UseLables	-UseLableTags
+		UseVars		-UseVarTags
+
+-z
+	is the speed of the CPU

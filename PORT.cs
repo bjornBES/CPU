@@ -46,7 +46,7 @@ namespace CPUTing
                     DISPLAYBUFFER(InputReg);
                     break;
                 case 0x6:
-                    DISPLAYONE();
+                    DISPLAYONE(InputReg);
                     break;
                 case 0x7:
                     OutputReg = 0;
@@ -122,7 +122,7 @@ namespace CPUTing
                 }
             }
         }
-        void DISPLAYONE()
+        void DISPLAYONE(byte CONTROLE = 0)
         {
             if (ConsoleCharBuffer[INDEX].ToString().ToUpper() == "\n")
             {
@@ -132,7 +132,16 @@ namespace CPUTing
             else
             {
                 if (PrintRaw[INDEX] == true)
-                    Console.Write(ConsoleCharBuffer[INDEX].ToString().ToUpper());
+                {
+                    if (CONTROLE == 0) //dec
+                    {
+                        Console.Write(ConsoleCharBuffer[INDEX].ToString().ToUpper());
+                    }
+                    else if (CONTROLE == 1) //hex
+                    {
+                        Console.Write(Convert.ToString(ConsoleCharBuffer[INDEX], 16).ToUpper());
+                    }
+                }
                 else
                 {
                     char Char = (char)ConsoleCharBuffer[INDEX];
