@@ -1,52 +1,162 @@
-﻿.ORG &FFE0
+﻿.ORG &0000
+!INIT &1002
+!CURSORX &FE00
+!CURSORY &FE01
+!ADDRL &FB00
+!ADDRH &FB01
+!CLEAR &FE04
 
-XAML  = $24                            ; Last "opened" location Low
-XAMH  = $25                            ; Last "opened" location High
-STL   = $26                            ; Store address Low
-STH   = $27                            ; Store address High
-L     = $28                            ; Hex value parsing Low
-H     = $29                            ; Hex value parsing High
-YSAV  = $2A                            ; Used to see if hex value is given
-MODE  = $2B                            ; $00=XAM, $7F=STOR, $AE=BLOCK XAM
+PRE_RESET:
+	NOOP
+RESET:
+	STOI &FE05
+	STOI #01 CLEAR
+	LODA #00
+	INBY 0b00001000
+	LODC '\'
+	CALL PRINT_CHAR
+	INBY #08
+	CALL SET_TEXT
+	STOI #00 &FC00
+	STOI #00 &FF00
+	STOI #00 &FF01
+	JUMP GET_KEY_LOOP
 
-IN    = $0200                          ; Input buffer
-
-START:
-
-UPDATE:
-
-ESCAPE:
-    LODC '\'
-    CALL ECHO
-
-RUN:
-
-PEEK:
-
-
-PEEK_S:
-
-PEEK_G:
-
-
-GETKEYS:
-    PUHR #00
-    PUHR #02
-    INBY #12
-    INBY #15
-    INBY #F0
-    STOC &10 %A
-    POPR #02
-    POPR #00
-    RESR
-
-ECHO:
-    PUHR #00
+PRINT_CHAR:
+	INBY #08
 	INBY #E0
 	INBY #00
 	INBY #05
-TXDELAY:
-    LODA #FF
-    JINZ TXDELAY
-    POPR #00
 	RESR
+PRINT_RAW_HEX:
+	INBY #08
+	INBY #E0
+	INBY #01
+	CALL TOHEX
+	INBY #09
+	INBY #06
+	RESR
+
+GET_KEY_LOOP:
+	UINT #01
+	INBY #15
+	OUTB
+
+	CMPC ESC
+	JIFT RESET
+
+	CMPC #0A
+	JINT NEXT_0
+	CALL ENTER
+NEXT_0:
+
+	CMPC #26
+	JINT NEXT_1
+	CALL BACKSPACE
+NEXT_1:
+
+	CMPC #2E
+	JIFT EXIT
+
+	STOC &02,%A
+	INCR #00
+	PUHR #01
+	LODB #01
+	CALL LOAD_CURSOR_POS
+	POPR #01
+	LODC #00
+	JUMP GET_KEY_LOOP
+
+EXIT:
+	HLTC
+
+BACKSPACE:
+	CMPA #00
+	JIFT RETURN_BACK
+
+	DECR #00
+	CALL LOAD_CURSOR_POS
+	INBY #09
+	LODC ' '
+	CALL PRINT_CHAR
+	DECR #00
+	CALL LOAD_CURSOR_POS
+RETURN_BACK:
+	RESR
+
+ENTER:
+	CMPA #00
+	JIFT RESET
+
+	CALL GET_ADDR
+	CALL WRITE_OUT
+
+	CALL GET_ADDR
+	CALL WRITE_OUT
+
+	LODA #00
+	INCR #01
+
+	CALL LOAD_CURSOR_POS
+
+	RESR
+
+WRITE_OUT:
+	LOAC ADDRH
+	CALL PRINT_RAW_HEX
+	LOAC ADDRL
+	CALL PRINT_RAW_HEX
+	RESR
+
+GET_ADDR:
+; IN MEM
+	PUHR #01
+
+	DECR #00
+	LOAD &02,%A
+
+	DECR #00
+	LOAB &02,%A
+
+	MOBA
+; IN ROM
+
+	GROM %B,%D
+
+	POPR #01
+
+	MOBA
+	RESR
+
+LOAD_CURSOR_POS:
+	STOA CURSORX
+	STOB CURSORY
+	RESR
+
+TOHEX:
+	PUHR #02
+	LODC #01
+	INBY #E0
+	POPR #02
+	RESR
+
+SET_TEXT:
+	STOI #00 CURSORX
+	STOI #01 CURSORY
+	UINT #00
+	RESR
+
+WRITE_NEW_LINE:
+	INCR #01
+	INCR #01
+	LODA #00
+	CALL LOAD_CURSOR_POS
+	UINT #00
+	RESR
+
+
+.ORG &1030
+.rword &1100
+
+.ORG &FFFE
+.word PRE_RESET

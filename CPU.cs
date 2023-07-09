@@ -5,6 +5,7 @@ namespace CPUTing
 {
     public struct CPU
     {
+        public bool Debug { get; set; }
         public const byte SR_RUNNING = 0;
         public const byte SR_KEYHERE = 1;
 
@@ -35,7 +36,7 @@ namespace CPUTing
         ///<summary>subroutine addr L</summary>
         public const ushort SUPL = 0xFB00;
         ///<summary>subroutine addr H</summary>
-        public const ushort SUPH = 0xFA00;
+        public const ushort SUPH = 0xFB01;
         ///<summary>SOUND enbale ADDR</summary>
         public const ushort SOUNDADDR = 0x7100;
         ///<summary>The Addr for an INT</summary>
@@ -46,24 +47,25 @@ namespace CPUTing
         public const ushort INTH = 0xFF01;
 
         //char array len
-        public byte CAL;
+        public byte CAL { get; private set; }
         //char array
-        public char[] CA;
+        public char[] CA { get; private set; }
         //A REG
-        public byte A;
+        public byte A { get; private set; }
         //B REG
-        public byte B;
+        public byte B { get; private set; }
         //for the PORT IO
-        public byte C;
+        public byte C { get; private set; }
         //D REG
-        public byte D;
+        public byte D { get; private set; }
         INSTR LastINSTR;
-        public bool BA;
-        public ushort PC;
+        public bool BA { get; private set; }
+        public ushort PC { get; private set; }
 
-        public byte[] FLAGS;
-        public bool[] SR;
-
+        public byte[] FLAGS { get; private set; }
+        public bool[] SR { get; private set; }
+        public bool LoadedAddr { get; private set; }
+        public bool ReadWrite { get; private set; }
         public byte DATABUS;
         public ushort ADDRBUS;
         public void START(MEM MEM, out MEM Omem)
@@ -180,6 +182,11 @@ namespace CPUTing
                 MEM.RAM[ClearConsole] = 0;
             }
 
+            if(Debug == true)
+            {
+                DebugerForCPU.UpdateCPU(this, MEM, PORT);
+            }
+
             SR[SR_KEYHERE] = Console.KeyAvailable;
 
             INSTR instr = DECODE(MEM.ROM[PC], false);
@@ -192,7 +199,7 @@ namespace CPUTing
             byte[] HEXBYTES;
             byte BYTES;
             ushort ADDR;
-            if (REG == true)
+            if (LoadedAddr == false && REG == true)
             {
                 HEXBYTES = HexConverter.GetBytes(STR);
                 string REGSTR1;
@@ -204,7 +211,7 @@ namespace CPUTing
                 ADDRBUS = ADDR;
                 return INSTR.NOOP;
             }
-            if (ZP == true)
+            if (LoadedAddr == false && ZP == true)
             {
                 HEXBYTES = HexConverter.GetBytes(STR);
                 string ZPSTR;
@@ -215,9 +222,9 @@ namespace CPUTing
             }
             if (JMP == false)
             {
-                string decode = STR[0].ToString() + STR[1].ToString();
-                string ARGS = STR[2].ToString() + STR[3].ToString();
-                string SUBSTR = "";
+                string decode = STR.Remove(2, 2);
+                string ARGS = STR.Remove(0, 2);
+                string SUBSTR;
                 if (STR.Contains('(')) // to decode a SIM
                 {
                     string[] vs = STR.Split(' ', 2);
@@ -236,9 +243,16 @@ namespace CPUTing
                 }
 
                 DATABUS = byte.Parse(HexConverter.GetBytes(ARGS)[0].ToString());
-                HEXBYTES = HexConverter.GetBytes(SUBSTR);
-                BYTES = (byte)(HEXBYTES[0] + HEXBYTES[1]);
-                ADDRBUS = BYTES;
+                if (LoadedAddr == false)
+                {
+                    HEXBYTES = HexConverter.GetBytes(SUBSTR);
+                    BYTES = (byte)(HEXBYTES[0] + HEXBYTES[1]);
+                    ADDRBUS = BYTES;
+                }
+                else
+                {
+                    LoadedAddr = false;
+                }
                 return (INSTR)Enum.Parse(typeof(INSTR), HexConverter.GetBytes(decode)[0].ToString());
             }
             else // AIM
@@ -366,13 +380,13 @@ namespace CPUTing
                     LOAD(PORTs.OutputReg, Reg.C); // here keys in \u+001B and not ascii 0x1B
                     break;
                 case INSTR.MOVA:
-                    MOV(A, GetReg(DATABUS), out A);
+                    A = MOV(A, GetReg(DATABUS));
                     break;
                 case INSTR.MOVB:
-                    MOV(B, GetReg(DATABUS), out B);
+                    B = MOV(B, GetReg(DATABUS));
                     break;
                 case INSTR.MOVC:
-                    MOV(C, Reg.A, out C);
+                    C = MOV(C, Reg.A);
                     break;
                 case INSTR.STOI:
                     PC++;
@@ -542,10 +556,10 @@ namespace CPUTing
                     UpdateINT(INTINSTR, MEM, PORTs);
                     break;
                 case INSTR.ROLR:
-                    Rotate(DATABUS, true, false);
+                    Rotate(DATABUS, true);
                     break;
                 case INSTR.RORR:
-                    Rotate(DATABUS, false, false);
+                    Rotate(DATABUS, false);
                     break;
                 case INSTR.JIFC:
                     Jump(MEM, 1, FG_CARR);
@@ -558,13 +572,31 @@ namespace CPUTing
                     GETROM(MEM, ADDRBUS);
                     break;
                 case INSTR.LRLR:
-                    Rotate(DATABUS, true, true);
+                    LogicalShift(DATABUS, true);
                     break;
                 case INSTR.LRRR:
-                    Rotate(DATABUS, false, true);
+                    LogicalShift(DATABUS, false);
                     break;
                 case INSTR.LODF:
                     LODF(DATABUS);
+                    break;
+                case INSTR.LOBS:
+                    if(ReadWrite == false)
+                    {
+                        PC--;
+                    }
+                    else
+                    {
+                        LOAD(DATABUS, Reg.A);
+                        ReadWrite = false;
+                    }
+                    break;
+                case INSTR.LOAR:
+                    GETADDR(MEM);
+                    LoadedAddr = true;
+                    break;
+                case INSTR.LOGC:
+                    DebugerForCPU.LOG();
                     break;
                 default:
                     break;
@@ -1061,7 +1093,7 @@ namespace CPUTing
                 }
             }
         }
-        public void MOV(byte F, Reg L, out byte FREG)
+        public byte MOV(byte F, Reg L)
         {
             byte Buffer = 0;
             switch (L)
@@ -1083,52 +1115,127 @@ namespace CPUTing
                     D = F;
                     break;
             }
-            FREG = Buffer;
+            return Buffer;
 
         }
-        public void Rotate(byte Reg, bool left, bool Logical)
+        public void Rotate(byte Reg, bool left)
         {
             switch (GetReg(Reg))
             {
                 case CPUTing.Reg.A:
-                    A = rot(A, left, Logical);
+                    A = rot(A, left);
                     break;
                 case CPUTing.Reg.B:
-                    B = rot(B, left, Logical);
+                    B = rot(B, left);
                     break;
                 case CPUTing.Reg.C:
-                    C = rot(C, left, Logical);
+                    C = rot(C, left);
                     break;
                 case CPUTing.Reg.D:
-                    D = rot(D, left, Logical);
+                    D = rot(D, left);
                     break;
             }
         }
-        public byte rot(byte Reg, bool left, bool Logical)
+        public void LogicalShift(byte Reg, bool Left)
         {
-            if (Logical == false)
+            byte Input = 0;
+            switch (GetReg(Reg))
             {
-                if (left == true)
-                {
-                    return (byte)BitOperations.RotateLeft(Reg, 1);
-                }
-                else
-                {
-                    return (byte)BitOperations.RotateRight(Reg, 1);
-                }
+                case CPUTing.Reg.A:
+                    Input = A;
+                    break;
+                case CPUTing.Reg.B:
+                    Input = B;
+                    break;
+                case CPUTing.Reg.C:
+                    Input = C;
+                    break;
+                case CPUTing.Reg.D:
+                    Input = D;
+                    break;
             }
-            if (Logical == true)
+            char[] RegBin = new char[8];
+            string BinString = Convert.ToString(Input, 2).PadLeft(8, '0');
+            for (int i = 0; i < BinString.ToCharArray().Length; i++)
             {
-                if (left == true)
-                {
-                    return (byte)(Reg >> 24 ^ Reg & 0xFFFFFF);
-                }
-                else
-                {
-                    return (byte)(Reg << 24 ^ Reg & 0xFFFFFF);
-                }
+                RegBin[i] = BinString.ToCharArray()[i];
             }
-            return 0;
+            if (Left == false)
+            {
+                for (int i = RegBin.Length; i < 0; i--)
+                {
+                    RegBin[i] = RegBin[i - 1];
+                }
+                /*
+                RegBin[7] = RegBin[6];
+                RegBin[6] = RegBin[5];
+                RegBin[5] = RegBin[4];
+                RegBin[4] = RegBin[3];
+                RegBin[3] = RegBin[2];
+                RegBin[2] = RegBin[1];
+                RegBin[1] = RegBin[0];
+                */
+                RegBin[0] = '0';
+            }
+            else
+            {
+                for (int i = 0; i < RegBin.Length; i++)
+                {
+                    RegBin[i] = RegBin[i + 1];
+                }
+                /*
+                RegBin[0] = RegBin[1];
+                RegBin[1] = RegBin[2];
+                RegBin[2] = RegBin[3];
+                RegBin[3] = RegBin[4];
+                RegBin[4] = RegBin[5];
+                RegBin[5] = RegBin[6];
+                RegBin[6] = RegBin[7];
+                */
+                RegBin[7] = '0';
+            }
+            for (int i = 0; i < BinString.Length; i++)
+            {
+                BinString += RegBin[i];
+            }
+
+            byte OutPut = Convert.ToByte(BinString, 2);
+            switch (GetReg(Reg))
+            {
+                case CPUTing.Reg.A:
+                    A = OutPut;
+                    break;
+                case CPUTing.Reg.B:
+                    B = OutPut;
+                    break;
+                case CPUTing.Reg.C:
+                    C = OutPut;
+                    break;
+                case CPUTing.Reg.D:
+                    D = OutPut;
+                    break;
+            }
+        }
+        public byte rot(byte Reg, bool left)
+        {
+            if (left == true)
+            {
+                return (byte)BitOperations.RotateLeft(Reg, 1);
+            }
+            else
+            {
+                return (byte)BitOperations.RotateRight(Reg, 1);
+            }
+        }
+        public void WriteIn(byte Data)
+        {
+            ReadWrite = true;
+            DATABUS = Data;
+        }
+        public void ReadIn(out byte Data)
+        {
+            ReadWrite = false;
+            Data = DATABUS;
         }
         public void GETADDR(MEM MEM)
         {
@@ -1150,6 +1257,56 @@ namespace CPUTing
         {
             Reg reg = (Reg)Enum.Parse(typeof(Reg), IMM.ToString());
             return reg;
+        }
+    }
+    public static class DebugerForCPU
+    {
+        public static CPU CPU;
+        public static MEM MEM;
+        public static PORT PORT;
+        public static void UpdateCPU(CPU cPU, MEM mEM, PORT pORT)
+        {
+            CPU = cPU;
+            MEM = mEM;
+            PORT = pORT;
+        }
+        public static void LOG()
+        {
+            Console.SetWindowSize(40, 20);
+            Console.SetBufferSize(40, 20);
+            Console.Clear();
+            Console.WriteLine("CPU");
+            Console.WriteLine("A:" + CPU.A + "(" + Convert.ToString(CPU.A, 16) + ") " +
+                              "B:" + CPU.B + "(" + Convert.ToString(CPU.B, 16) + ") " +
+                              "C:" + CPU.C + "(" + Convert.ToString(CPU.C, 16) + ") " +
+                              "D:" + CPU.D + "(" + Convert.ToString(CPU.D, 16) + ")");
+
+            Console.WriteLine("PC:" + CPU.PC + "(" + Convert.ToString(CPU.PC, 16) + ") " +
+                              "RW:" + CPU.ReadWrite +
+                              "DB:" + CPU.DATABUS + "(" + Convert.ToString(CPU.DATABUS, 16) + ") " +
+                              "AB:" + CPU.ADDRBUS + "(" + Convert.ToString(CPU.ADDRBUS, 16) + ") ");
+
+            Console.WriteLine("MEM");
+            Console.WriteLine("CX:" + MEM.RAM[CPU.CXpos] + "(" + Convert.ToString(MEM.RAM[CPU.CXpos], 16) + ") " +
+                              "CY:" + MEM.RAM[CPU.CYpos] + "(" + Convert.ToString(MEM.RAM[CPU.CYpos], 16) + ") " +
+                              "CS:" + MEM.RAM[CPU.CursorStyle] + "(" + Convert.ToString(MEM.RAM[CPU.CursorStyle], 16) + ") " +
+                              "CC:" + MEM.RAM[CPU.ConsoleBGColor] + "(" + Convert.ToString(MEM.RAM[CPU.ConsoleBGColor], 16) + ")");
+
+            Console.WriteLine("SP:" + MEM.RAM[CPU.SP] + "(" + Convert.ToString(MEM.RAM[CPU.SP], 16) + ") " +
+                              "AL:" + MEM.RAM[CPU.SUPL] + "(" + Convert.ToString(MEM.RAM[CPU.SUPL], 16) + ") " +
+                              "AH:" + MEM.RAM[CPU.SUPH] + "(" + Convert.ToString(MEM.RAM[CPU.SUPH], 16) + ") " +
+                              "IL:" + MEM.RAM[CPU.INTL] + "(" + Convert.ToString(MEM.RAM[CPU.INTL], 16) + ") " +
+                              "IH:" + MEM.RAM[CPU.INTH] + "(" + Convert.ToString(MEM.RAM[CPU.INTH], 16) + ") ");
+
+            Console.WriteLine("PORT");
+            Console.WriteLine("IR:" + PORT.InputReg + "(" + Convert.ToString(PORT.InputReg, 16) + ") " +
+                              "OR:" + PORT.OutputReg + "(" + Convert.ToString(PORT.OutputReg, 16) + ") " +
+                              "IN:" + PORT.INDEX + "(" + Convert.ToString(PORT.INDEX, 16) + ") ");
+
+            Console.ReadKey();
+            Console.SetWindowSize(20, 20);
+            Console.SetBufferSize(20, 20);
+            Console.Clear();
         }
     }
 }

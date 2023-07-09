@@ -64,6 +64,9 @@
         LRLR = 0x3B,
         LRRR = 0x3C,
         LODF = 0x3D,
+        LOBS = 0x3E,
+        LOAR = 0x3F,
+        LOGC = 0x40,
     }       
     public enum Reg
     {

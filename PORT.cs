@@ -139,7 +139,7 @@ namespace CPUTing
                     }
                     else if (CONTROLE == 1) //hex
                     {
-                        Console.Write(Convert.ToString(ConsoleCharBuffer[INDEX], 16).ToUpper());
+                        Console.Write(Convert.ToString(ConsoleCharBuffer[INDEX], 16).ToUpper().PadRight(2, '0'));
                     }
                 }
                 else

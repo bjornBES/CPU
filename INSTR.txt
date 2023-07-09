@@ -60,9 +60,9 @@
 0x3B	LRLR	IMM	REG[IMM] >> shift 1 bit to the left + C
 0x3C	LRRR	IMM	REG[IMM] << shift 1 bit to the right + C
 0x3D	LODF	IMM F = IMM 
-0x3E
-0x3F
-0x40
+0x3E	LOBS	IMM Loop RW = 0 ? RW = 1 | A = DataBus
+0x3F	LOAR	AIM ADDRBUS = AIM
+0x40	LOGC		LOGS THE CPU INFO
 0x41
 0x42
 0x43

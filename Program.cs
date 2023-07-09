@@ -7,16 +7,20 @@ namespace CPUTing
 {
     internal class Program : ConsoleMenu
     {
+        public string[] InportedPaths = new string[0xFFFF + 1];
         private PORT PORTs;
         private CPU CPU;
         private MEM MEM;
+        private MEM MEM1;
         private Complier Complier;
         private readonly Assembler Assembler;
         private string[] code;
         private readonly bool useCompiler = false;
         private readonly string BMasmpath = "D:/2019/repos/CPUTing/BMASM/PROGRAM.BMasm";
         private readonly string BZpath = "D:/2019/repos/CPUTing/HIGHLEVELLANG/Porgram.BZ";
+        private readonly string MarcoCommands = "D:/2019/repos/CPUTing/MarcoCommands.txt";
         private const string CHARS = @"qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKKLZXCVBNM1234567890#@";
+        string MarcoArgs;
         private static void Main()
         {
             _ = new Program();
@@ -27,6 +31,7 @@ namespace CPUTing
             Assembler = new Assembler();
             CPU = new CPU();
             MEM = new MEM();
+            MEM1 = new MEM();
             PORTs = new PORT();
             Complier = new Complier();
             Console.SetWindowSize(40, 20);
@@ -47,9 +52,25 @@ namespace CPUTing
                 Console.Clear();
                 Console.SetCursorPosition(0, 19);
                 string User = Console.ReadLine();
-                if(User.Contains(' '))
+                if (User.Contains(' '))
                 {
                     ASSOPS = User.Split(' ');
+                }
+                if(User == "M" || User == "Marco" || User == "m" || User == "marco")
+                {
+                    string[] SplitMarcoCode = File.ReadAllText(MarcoCommands).Split("\r\n");
+                    for (int i = 0; i < SplitMarcoCode.Length; i++)
+                    {
+                        if(SplitMarcoCode[i].Contains(' '))
+                        {
+                            MarcoArgs = SplitMarcoCode[i].Split(' ', 2)[1];
+                            GetFuns(SplitMarcoCode[i].Split(' ', 2)[0]);
+                        }
+                        else
+                        {
+                            GetFuns(SplitMarcoCode[i]);
+                        }
+                    }
                 }
                 GetFuns(User);
             }
@@ -95,13 +116,66 @@ namespace CPUTing
             */
             Assembler.Start();
 
-            if(Assembler.error == "")
+            if (Assembler.error == "")
             {
                 Console.WriteLine(Assembler.error);
-                Console.WriteLine("there is " + Assembler.error.Split("\n").Length+ "errors ");
+                Console.WriteLine("there is " + Assembler.error.Split("\n").Length + "errors ");
             }
 
             FILLCODE();
+        }
+        public override void Debug() => CPU.Debug = !CPU.Debug;
+        public override void Inport()
+        {
+            string Dir;
+            string FileName = "";
+            int Cursor = 0;
+            if (MarcoArgs == "")
+            {
+                Console.WriteLine("write the Dir to the file");
+                Dir = Console.ReadLine();
+            }
+            else
+            {
+                FileName = MarcoArgs.Split(' ')[0];
+                Dir = MarcoArgs.Split(' ')[1];
+            }
+            DirectoryInfo directoryInfo = new DirectoryInfo(Dir);
+            FileInfo[] files = directoryInfo.GetFiles();
+            int Ext = 10;
+            if(files.Length <= 10)
+            {
+                Ext = files.Length;
+            }
+            for (int i = Cursor; i < Cursor + Ext; i++)
+            {
+                if (MarcoArgs == "")
+                {
+                    do
+                    {
+                        ConsoleKey KEY = Console.ReadKey().Key;
+                        if (Cursor != 0 && KEY == ConsoleKey.UpArrow)
+                        {
+                            Cursor--;
+                        }
+                        if (Cursor != files.Length - 10 && KEY == ConsoleKey.DownArrow)
+                        {
+                            Cursor++;
+                        }
+                        if (KEY == ConsoleKey.Enter)
+                        {
+                            FileName = files[Cursor].FullName;
+                        }
+                    } while (FileName != "");
+                }
+                else
+                {
+                    if(files[i].Name == FileName.Split('.')[0])
+                    {
+
+                    }
+                }
+            }
         }
         public override void Run()
         {
@@ -114,7 +188,7 @@ namespace CPUTing
             Console.SetBufferSize(40, 20);
             Console.CursorSize = 25;
             Console.ResetColor();
-        }
+        } 
         public override void Write()
         {
             int DownLInes = 0;
@@ -453,6 +527,7 @@ namespace CPUTing
         {
             PORTs.START();
             MEM.START();
+            MEM1.START();
             CPU.START(MEM, out MEM);
             MEM.RAM = Assembler.MEMRAM;
             // todo Assembler is not working the lens and 0xFFFF + 1
@@ -480,11 +555,13 @@ namespace CPUTing
     public abstract class ConsoleMenu
     { 
         public string[] _Build = new string[] { "Build", "build", "B", "b", "bfc", "Bjc" };
+        public string[] _Debug = new string[] { "Debug", "debug", "DB", "db", "dB", "Db" };
         public string[] _RUN = new string[] { "Run", "run", "r", "R", "RUN", "ruN"};
         public string[] _Write = new string[] { "Write", "write", "w", "W", "WRITE", "writE" };
         public string[] _Dump = new string[] { "dump", "Dump", "d", "D", "DUMP", "dumP" };
         public string[] _DumpRam = new string[] { "dumpram", "DumpRam", "dr", "DR", "DUMPRAM", "dumpraM" };
         public string[] _Exit = new string[] { "Exit", "exit", "E", "e", "exiT", "EXIT" };
+        public string[] _Inport = new string[] { "Inport", "inport", "I", "i", "IP", "ip" };
         public void Start()
         {
         }
@@ -495,6 +572,14 @@ namespace CPUTing
                 if (_Build[i].Equals(user))
                 {
                     Build();
+                }
+                if (_Debug[i].Equals(user))
+                {
+                    Debug();
+                }
+                if (_Inport[i].Equals(user))
+                {
+                    Inport();
                 }
                 if (_RUN[i].Equals(user))
                 {
@@ -518,6 +603,8 @@ namespace CPUTing
                 }
             }
         }
+        public abstract void Inport();
+        public abstract void Debug();
         public abstract void Build();
         public abstract void Run();
         public abstract void Write();

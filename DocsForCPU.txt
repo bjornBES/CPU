@@ -41,6 +41,7 @@ MEM Layout
 0xFE03 - 0xFE03 Console BG color 1
 0xFE04 - 0xFE04 Console Clear 1
 0xFE05 - 0xFE05 Get Key 1
+
 0xFF00 - 0xFF00 INT ADDR L 1
 0xFF01 - 0xFF01 INT ADDR H 1
 
@@ -165,6 +166,7 @@ LESS : 2	| is 1 if the last CMP instr was less then
 OVER : 3	| is 1 if the last * instr was over 255
 INTS : 4	| is 1 if there is an INT
 PLUS : 5	| is 1 if the last * instr was under 0
+CARR : 6	| is 1 if the last * overflowed 255(0xFF)
 
 Status Reg
 RUNNING : 0;
