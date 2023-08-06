@@ -1,68 +1,68 @@
-﻿0x00	HLTC	IMM	SR.R = 0
-0x01	NOOP	
-0x02	CALL	AIM	PUSAD, PUSAD, PC = AIM
-0x03	RESR		POPAD, POPAD, PC = ADDR
-0x04	INBY	IMM PORT = IMMH
-0x05	OUTB		?* IMMH ! something
-0x06	MOVA	IMM A = REG[IMM] | REG[IMM] = A 
-0x07	MOVB	IMM B = REG[IMM] | REG[IMM] = B
-0x08	MOVC		A = C | C = A
-0x09	STOI	I,A MEM[A] = I 
-0x0A	PUHI	IMM	MEM[SP] = IMM, SP++
-0x0B	PUHR	IMM	MEM[SP] = REG[IMM], SP++
-0x0C	PUHS	SIM	MEM[SP] = SIM[A], A--, SP++
-0x0D	POPR	IMM	SP--, REG[IMM] = MEM[SP]
-0x0E	*LODA	IMM	A = IMM
-0x0F	LOAA	AIM	A = RAM[AIM]
-0x10	STOA	AIM	RAM[AIM] = A
-0x11	DECR	IMM	REG[IMM]--
-0x12	INCR	IMM	REG[IMM]++
-0x13	*CMPA	IMM	A & IMM
-0x14	*LODB	IMM	B = IMM
-0x15	LOAB	AIM	B = RAM[AIM]
-0x16	STOB	AIM	RAM[AIM] = B
-0x17	*CMPB	IMM	B & IMM
-0x18	LODC	IMM	C = IMM
-0x19	LOAC	AIM	C = RAM[AIM]
-0x1A	STOC	AIM	RAM[AIM] = C
-0x1B	*CMPC	IMM	C & IMM
-0x1C	*LODD	IMM	D = IMM
-0x1D	LOAD	AIM	D = RAM[AIM]
-0x1E	STOD	AIM	RAM[AIM] = D
-0x1F	*CMPD	IMM	D & IMM
-0x20	*ADDI	IMM A + IMM
-0x21	*SUBI	IMM A - IMM
-0x22	*ADDR	IMM A + REG[IMM]
-0x23	*SUBR	IMM A - REG[IMM]
-0x24	*CMPF	IMM IMM & F = 1 | T = 1 ! T = 0	
-0x25	*ANDI	IMM	A = IMM & A
-0x26	*NOTI	IMM	A = !IMM
-0x27	*ORIM	IMM	A = IMM | A
-0x28	*NORI	IMM	A = ~(IMM | A)
-0x29	*ANDR	IMM	A = A & REG[IMM]
-0x2A	*NOTR	IMM	A = !REG[IMM]
-0x2B	*ORRE	IMM	A = A | REG[IMM]
-0x2C	*NORR	IMM	A = ~(A | REG[IMM])
-0x2D	MOBA		?BA = 0 | BA = 1 & ?BA = 1 | BA = 1
-0x2E	*INTB	AIM	I = true | PUSH PC | PUSH PC | PC = AIM
-0x2F	JUMP	AIM PC = AIM	
-0x30	JINZ	AIM	?Z == 0 | PC = AIM
-0x31	JINT	AIM	?T == 0 | PC = AIM
-0x32	JIFT	AIM ?T == 1 | PC = AIM
-0x33	*INTR		I = true | PUSH PC | PUSH PC | PC = INTVectorAddr
-0x34	*REIN		I = false | POP PC | POP PC | PC = CALLADDR
-0x35	*UINT	IMM FUNVECTOR[Imm]
-0x36	ROLR	IMM REG[IMM] >> shift 1 bit to the left
-0x37	RORR	IMM REG[IMM] << shift 1 bit to the right
-0x38	JIFC	AIM ?C == 1 | PC = AIM
-0x39	JINO	AIM ?O == 0 | PC = AIM
-0x3A	GROM	AIM RAM[SUBL] = RAM[AIM].L & RAM[SUBH] = RAM[AIM].H
-0x3B	LRLR	IMM	REG[IMM] >> shift 1 bit to the left + C
-0x3C	LRRR	IMM	REG[IMM] << shift 1 bit to the right + C
-0x3D	LODF	IMM F = IMM 
-0x3E	LOBS	IMM Loop RW = 0 ? RW = 1 | A = DataBus
-0x3F	LOAR	AIM ADDRBUS = AIM
-0x40	LOGC		LOGS THE CPU INFO
+﻿0x00	HLTC	IMM8			HLT the Cpu
+0x01	NOOP					NO OP
+0x02	CALL	IMM16			CALL to a new and save the addr
+0x03	RESR					REturns from SubRoutine
+0x04	INBY	IMM8			loads a BYte INto the port to be exe
+0x05	OUTB					loads the c reg using the OUTput Byte
+0x06	MOVA	IMM8			MOVes A to a reg indexed by imm8
+0x07	MOVB	IMM8			MOVES B to a reg indexed by imm8
+0x08	MOVC					MOVes C to a 
+0x09	STOI	IMM8 & IMM16	STOres an Imm8 into Ram using imm16
+0x0A	PUHI	IMM8			PUsHes an Imm8 into the stack
+0x0B	PUHR	IMM8			PUsHes an Reg indexed by imm8 into the stack
+0x0C	PUHS	STRING IMM		PUsHes a String imm
+0x0D	POPR	IMM8			POPs a value out of the stack and into a Reg indexed by imm8
+0x0E	*LODA	IMM8			LOaD A with an imm8
+0x0F	LOAA	IMM16			LOAD A with an Addr
+0x10	STOA	IMM16			STOre A
+0x11	DECR	IMM8			DEC Reg indexed by imm8
+0x12	INCR	IMM8			INC Reg indexed by imm8
+0x13	*CMPA	IMM8			CMP A
+0x14	*LODB	IMM8			LOaD B with an imm8
+0x15	LOAB	IMM16			LOAD B with an Addr
+0x16	STOB	IMM16			STOre B
+0x17	*CMPB	IMM8			CMP B
+0x18	LODC	IMM8			LOaD C with an imm8
+0x19	LOAC	IMM16			LOAD C with an Addr
+0x1A	STOC	IMM16			STOre C
+0x1B	*CMPC	IMM8			CMP C
+0x1C	*LODD	IMM8			LOaD D with an imm8
+0x1D	LOAD	IMM16			LOAD D with an Addr
+0x1E	STOD	IMM16			STOre D
+0x1F	*CMPD	IMM8			CMP D
+0x20	*ADDI	IMM8			ADD Imm8
+0x21	*SUBI	IMM8			SUB Imm8
+0x22	*ADDR	IMM8			ADD Reg indexed by imm8
+0x23	*SUBR	IMM8			SUB Reg indexed by imm8
+0x24	*CMPF	IMM8			CMP Flags	
+0x25	*ANDI	IMM8			AND Imm8
+0x26	*NOTI	IMM8			NOT Imm8
+0x27	*ORIM	IMM8			OR IMm8
+0x28	*NORI	IMM8			NOR Imm8
+0x29	*ANDR	IMM8			AND Reg	indexed by imm8			
+0x2A	*NOTR	IMM8			NOT Reg indexed by imm8
+0x2B	*ORRE	IMM8			OR REg indexed by imm8
+0x2C	*NORR	IMM8			NOR Reg indexed by imm8
+0x2D	MOBA					Moves the BAnk
+0x2E	*INTA	IMM16			INT Addr
+0x2F	JUMP	IMM16			JUMP to an addr
+0x30	JINZ	IMM16			Jump If Not Zero
+0x31	JINT	IMM16			Jump If Not True
+0x32	JIFT	IMM16			Jump IF True
+0x33	*INTR					INT to the Reged addr
+0x34	*REIN					REturn for INt
+0x35	*UINT	IMM8			Update INT
+0x36	ROLR	IMM8			ROtate Reg Left
+0x37	RORR	IMM8			ROtate Reg Right
+0x38	JIFC	IMM16			Jump IF Carry
+0x39	JINO	IMM16			Jump If Not OverFlow
+0x3A	GROM	IMM16			Get ROM
+0x3B	LSLR	IMM8			Logical shift Reg Right
+0x3C	LSRR	IMM8			Logical shift Reg Left
+0x3D	LODF	IMM8			LOaD Flags
+0x3E	LOBS	IMM8			LOad dataBuS
+0x3F	LOAR	IMM16			LOad AddRbus
+0x40	LOGC					LOG Cpu
 0x41
 0x42
 0x43

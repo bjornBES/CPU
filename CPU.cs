@@ -512,7 +512,7 @@ namespace CPUTing
                     else
                         BA = true;
                     break;
-                case INSTR.INTB:
+                case INSTR.INTA:
                     PC++;
                     CALL(MEM, (ushort)(PC + 1));
                     DECODE(MEM.ROM[PC], true);
@@ -571,10 +571,10 @@ namespace CPUTing
                     GETADDR(MEM);
                     GETROM(MEM, ADDRBUS);
                     break;
-                case INSTR.LRLR:
+                case INSTR.LSLR:
                     LogicalShift(DATABUS, true);
                     break;
-                case INSTR.LRRR:
+                case INSTR.LSRR:
                     LogicalShift(DATABUS, false);
                     break;
                 case INSTR.LODF:

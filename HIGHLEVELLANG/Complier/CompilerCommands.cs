@@ -1,6 +1,6 @@
 ﻿using System;
 using CrypticWizard.HexConverter;
-using CPUTing.HIGHLEVELLANG.Complier;
+using CPUTing.HIGHLEVELLANG.Complier.commands;
 
 namespace CPUTing.HIGHLEVELLANG.Complier
 {
@@ -13,6 +13,13 @@ namespace CPUTing.HIGHLEVELLANG.Complier
         func,
         inport,
         port,
+        release,
+        exit,
+    }
+    public enum Keywords
+    {
+        local,
+        global,
     }
     public enum PortCommands
     {
@@ -22,14 +29,24 @@ namespace CPUTing.HIGHLEVELLANG.Complier
         GetLine,
         Move
     }
-    public class CompilerCommands
+    public static class CompilerCommands
     {
-        public const string COMM = ":";
-        public const string HexStart = "0x";
-        public const string BinStart = "0b";
-        public const string PortExt = "::";
-        public const char String = '"'; //"
-        public const char Char = '\''; //'
-        public const string NewLineChar = "\\n"; //\n
+        public static string COMM = ":";
+        public static string HexStart = "0x";
+        public static string BinStart = "0b";
+        public static string PortExt = "::";
+        public static char String = '"'; //"
+        public static char Char = '\''; //'
+        public static string NewLineChar = "\\n"; //\n
+        public static bool IsDec;
+        public static bool IsHex;
+        public static bool IsBin;
+        public static bool IsString;
+        public static bool IsChar;
+        public static string Error { get; private set; }
+        public static void SetNewError(string ErrorText, int LineNumber, string CodeLine, string ErrorCode, int ErrorWarningLevel)
+        {
+            Error += ErrorText + " line number " + LineNumber + " code " + CodeLine + " BZ-" + ErrorCode + "EW" + ErrorWarningLevel + "\n";
+        }
     }
 }

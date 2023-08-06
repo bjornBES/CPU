@@ -1,0 +1,4 @@
+﻿
+gobal func WriteLine(tester)
+	Port::Write(tester)
+end

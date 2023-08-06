@@ -1,3 +1,62 @@
-﻿Build
-Debug
-Run
+﻿@BuildDebugRun
+	Build
+	Debug
+	Run
+End
+
+@BuildRun
+	Build
+	Run
+End
+
+@Marco0
+	Build
+End
+
+@Marco1
+	Build
+End
+
+@Marco2
+	Build
+End
+
+@Marco3
+	Build
+End
+
+@Marco4
+	Build
+End
+
+@Marco5
+	Build
+End
+
+@Marco6
+	Build
+End
+
+@Marco7
+	Build
+End
+
+@Marco8
+	Build
+End
+
+@Marco9
+	Build
+End
+
+@Marco10
+	Build
+End
+
+@Marco11
+	Build
+End
+
+@Marco12
+	Build
+End

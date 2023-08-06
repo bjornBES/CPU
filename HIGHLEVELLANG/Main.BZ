@@ -1,0 +1,3 @@
+﻿inport : "Console.BZ"
+
+WriteLine("Hello world!")

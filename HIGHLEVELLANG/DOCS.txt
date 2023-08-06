@@ -5,6 +5,10 @@
 	const XX variables
 	const XX const
 	variables XX variables
+
+	while AA XX BB
+	or
+	while AA
 Cmp statement
 	if
 
@@ -12,17 +16,20 @@ Cmp statement
 	const XX variables
 	const XX const
 	variables XX variables
+
 variables
 	var
 
-	local		not get them in other files
-	global		where you can get them in other files
-
+	keyword var name = value
 	var name = value
-	var name = value : type
 
 	writes the value into RAM
 	inc a pointer
+
+keyword
+	local		not get them in other files
+	global		where you can get them in other files
+
 IO
 	port::
 		func
@@ -48,10 +55,7 @@ data types
 Func
 	Func Name
 	Func Name ! arg1 
-	Func Name ! arg1 : type 
-
-	local		not get them in other files
-	global		where you can get them in other files
+	Func Name ! arg1, arg2...
 
 	ref
 	Name
@@ -68,5 +72,22 @@ Func
 	return
 		ret value
 
+release
+	deletes all variables from that giveing file
+exit
+	deletes all variables and removes all FuncAddrs from that giveing file
+
 Inporting files 
 	inport : "name.BZ"
+
+
+Errors
+	BZ + ErrorCode + EW + Num
+	ErrorCode
+		0x0
+		...
+		0xFFFF
+	Error Warning level
+	1
+	...
+	5

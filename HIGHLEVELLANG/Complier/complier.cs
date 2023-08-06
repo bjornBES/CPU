@@ -1,18 +1,23 @@
 ﻿using CrypticWizard.HexConverter;
 using System;
-using CPUTing.HIGHLEVELLANG.Complier;
+using System.IO;
+using System.Collections.Generic;
+using CPUTing.HIGHLEVELLANG.Complier.commands;
 
 namespace CPUTing.HIGHLEVELLANG.Complier
 {
-    public class Complier : CompilerCommands
+    public class Complier
     {
+        int FileIndex = 0;
+        List<string> Files; //Name1.255-FileIndex2
+        string[] FuncAddrs = new string[255]; //AHex4-FileIndex2
         string[] Code;
         public string[] RawCode;
         public string[] AsmCode = new string[0xFFFF + 1];
         public int ASMIndex = 0; 
-        public string Error;
         public void Start(string[] BZCode)
         {
+            FuncAddrs.Initialize();
             Code = BZCode;
             RawCode = new string[Code.Length];
             for (int i = 0; i < Code.Length; i++)
@@ -27,9 +32,9 @@ namespace CPUTing.HIGHLEVELLANG.Complier
         }
         public void RemoveComms(int i)
         {
-            if(Code[i].Contains(COMM))
+            if(Code[i].Contains(CompilerCommands.COMM))
             {
-                int Index = Code[i].IndexOf(COMM);
+                int Index = Code[i].IndexOf(CompilerCommands.COMM);
                 RawCode[i] = Code[i].Remove(Index, Code[i].Length);
             }
             else
@@ -42,20 +47,13 @@ namespace CPUTing.HIGHLEVELLANG.Complier
         string Ops;
         string Name = "";
         int DecNummber;
-        bool IsDec;
-        bool IsHex;
-        bool IsBin;
-        bool IsString;
-        bool IsChar;
         string Operator = "";
         string VarType = "";
         object Tempcommands;
-        bool Parsed;
         Commands commands;
         public void GetCode(int i)
         {
             string[] Line = RawCode[i].Split(' ');
-            Ops = Line[0];
 
             FindCommand(Line, i);
 
@@ -70,75 +68,72 @@ namespace CPUTing.HIGHLEVELLANG.Complier
                 case Commands.func:
                     break;
                 case Commands.inport:
+                    if (FileIndex == 255)
+                    {
+                        CompilerCommands.SetNewError("FileIndex has overflowed", i, RawCode[i], "ABE2", 4);
+                        break;
+                    }
+                    Files.Add(Name + "-" + FileIndex);
+                    FileIndex++;
                     break;
                 case Commands.port:
-                    if(Ops.Contains(PortExt) == false)
-                    {
-                        Error += "Port func not found line " + i + " " + Line[i] + " \n";
-                        return;
-                    }
-                    string PortCommand = Ops.Split(PortExt)[1];
-                    object TempportCommand;
-                    PortCommands portCommands = PortCommands.none;
-                    Parsed = Enum.TryParse(typeof(PortCommands), PortCommand, out TempportCommand);
-                    if(Parsed == true)
-                    {
-                        portCommands = (PortCommands)TempportCommand;
-                    }
-                    switch (portCommands)
-                    {
-                        case PortCommands.Write:
-                            if(IsChar)
-                            {
-                                AsmCode[ASMIndex] = "INBY #08";
-                                ASMIndex++;
-                                AsmCode[ASMIndex] = "LODC \'" + Name.Split(Char)[1] + "\'";
-                                ASMIndex++;
-                                AsmCode[ASMIndex] = "INBY #E0";
-                                ASMIndex++;
-                                AsmCode[ASMIndex] = "INBY #00";
-                                ASMIndex++;
-                                AsmCode[ASMIndex] = "INBY #06";
-                                ASMIndex++;
-                            }
-                            if(IsString)
-                            {
-                                AsmCode[ASMIndex] = "PUHS " + String + Name.Split(String)[1] + String;
-                                ASMIndex++;
-                                AsmCode[ASMIndex] = "*PRINT_STRING_FUN:";
-                                ASMIndex++;
-                                AsmCode[ASMIndex] = "POPR #02";
-                                ASMIndex++;
-                                AsmCode[ASMIndex] = "INBY #E0";
-                                ASMIndex++;
-                                AsmCode[ASMIndex] = "DECR #00";
-                                ASMIndex++;
-                                AsmCode[ASMIndex] = "INBY #05";
-                                ASMIndex++;
-                                AsmCode[ASMIndex] = "JINZ PRINT_STRING_FUN";
-                                ASMIndex++;
-                                AsmCode[ASMIndex] = "INBY #05";
-                                ASMIndex++;
-                            }
-                            break;
-                        case PortCommands.GetKey:
-                            break;
-                        case PortCommands.GetLine:
-                            break;
-                        case PortCommands.Move:
-                            break;
-                        default:
-                            Error += "command not found line " + i + " " + Line[i] + "\n";
-                            break;
-                    }
+                    PortCommand.CompilCode(Ops, Name, Line[i], i, RawCode[i]);
+                    break;
+                case Commands.release:
+                    break;
+                case Commands.exit:
+
                     break;
                 default:
-                    Error += "command not found line " + i + " " + Line[i] + "\n";
+                    CompilerCommands.SetNewError("command not found line", i, RawCode[i], "815B", 3);
                     break;
             }
         }
-        public void FindCommand(string[] Line, int i)
+        public void FindCommand(string[] LineCode, int LineNumber)
         {
+            object Result;
+            bool HasKayword = Enum.TryParse(typeof(Keywords), LineCode[0], out Result);
+            string Code = "";
+
+            for (int i = 0; i < LineCode.Length; i++)
+            {
+                Code += LineCode[i];
+            }
+            if(HasKayword == true)
+            {
+                Ops = LineCode[1];
+                Name = LineCode[2];
+                //port, if, while, inport
+            }
+            else
+            {
+                Ops = LineCode[0];
+            }
+            if(Name.Length > 255)
+            {
+                CompilerCommands.SetNewError("The Name is to long at line", LineNumber, Code, "173A", 1);
+                return;
+            }
+
+
+            /*
+            bool Parsed;
+            //checking for variables
+            CompilerCommands.IsDec = int.TryParse(Line[3], out DecNummber);
+            CompilerCommands.IsHex = Line[3].Contains(CompilerCommands.HexStart);
+            CompilerCommands.IsBin = Line[3].Contains(CompilerCommands.BinStart);
+            CompilerCommands.IsString = Line[3].Contains(CompilerCommands.String);
+            CompilerCommands.IsChar = Line[3].Contains(CompilerCommands.Char);
+            bool Result =
+                CompilerCommands.IsDec |
+                CompilerCommands.IsHex |
+                CompilerCommands.IsBin |
+                CompilerCommands.IsString |
+                CompilerCommands.IsChar;
+            if (Result == false)
+            {
+                Error += "type not found line " + i + " " + Line[i] + "\n";
+            }
             if (Line.Length == 2)
             {
                 Name = Line[1];
@@ -147,16 +142,6 @@ namespace CPUTing.HIGHLEVELLANG.Complier
             {
                 if (Line[3] == "")
                 {
-                    IsDec = int.TryParse(Line[3], out DecNummber);
-                    IsHex = Line[3].Contains(HexStart);
-                    IsBin = Line[3].Contains(BinStart);
-                    IsString = Line[3].Contains(String);
-                    IsChar = Line[3].Contains(Char);
-                    bool Result = IsDec | IsHex | IsBin | IsString | IsChar;
-                    if (Result == false)
-                    {
-                        Error += "type not found line " + i + " " + Line[i] + "\n";
-                    }
                 }
                 Operator = Line[2];
             }
@@ -181,7 +166,7 @@ namespace CPUTing.HIGHLEVELLANG.Complier
                 Error += "Command can not be found line " + i + " " + RawCode[i] + "\n";
                 return;
             }
-
+            */
         }
     }
 }
