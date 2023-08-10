@@ -3,6 +3,8 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>netcoreapp3.1</TargetFramework>
+    <StartupObject>CPUTing.Program</StartupObject>
+    <Nullable>disable</Nullable>
   </PropertyGroup>
 
   <ItemGroup>

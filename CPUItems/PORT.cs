@@ -2,7 +2,7 @@
 using CPUTing.ConsoleEngine;
 using System.Threading;
 
-namespace CPUTing
+namespace CPUTing.CPUItems
 {
     public class PORT
     {
@@ -36,7 +36,7 @@ namespace CPUTing
                 case 0x2:
                     break;
                 case 0x3:
-                    OUTINPUT = (byte)ConsoleCharBuffer[InputReg];
+                    OUTINPUT = ConsoleCharBuffer[InputReg];
                     break;
                 case 0x4:
                     if (INDEX != 0xff)
@@ -57,7 +57,7 @@ namespace CPUTing
                     INDEX = 0;
                     break;
                 case 0x9:
-                    if(INDEX != 0)
+                    if (INDEX != 0)
                         INDEX--;
                     break;
                 case 0xa:
@@ -103,13 +103,13 @@ namespace CPUTing
                 }
                 else
                 {
-                    if(PrintRaw[i] == true)
+                    if (PrintRaw[i] == true)
                     {
-                        if(CONTROLE == 0) //dec
+                        if (CONTROLE == 0) //dec
                         {
                             Console.Write(ConsoleCharBuffer[i].ToString().ToUpper());
                         }
-                        else if(CONTROLE == 1) //hex
+                        else if (CONTROLE == 1) //hex
                         {
                             Console.Write(Convert.ToString(ConsoleCharBuffer[i], 16).ToUpper());
                         }
@@ -420,11 +420,11 @@ namespace CPUTing
                 case ConsoleKey.OemClear:
                     break;
                 default:
-                OUTINPUT = (byte)Key.Key;
+                    OUTINPUT = (byte)Key.Key;
                     break;
             }
         }
-        public void LoadKEY(byte Input,MEM MEM)
+        public void LoadKEY(byte Input, MEM MEM)
         {
             switch (Input)
             {

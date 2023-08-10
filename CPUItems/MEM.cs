@@ -1,4 +1,4 @@
-﻿namespace CPUTing
+﻿namespace CPUTing.CPUItems
 {
     public struct MEM
     {

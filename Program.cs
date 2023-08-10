@@ -3,6 +3,10 @@ using System;
 using System.IO;
 using System.Collections.Generic;
 using CrypticWizard.HexConverter;
+using System.Numerics;
+using CPUTing.CPUItems;
+using CPUTing.AssemblerMan;
+
 namespace CPUTing
 {
     internal class Program : ConsoleMenu
@@ -18,8 +22,8 @@ namespace CPUTing
         private string[] code;
         private readonly bool useCompiler = false;
         private readonly string BMasmpath = "D:/2019/repos/CPUTing/BMASM/PROGRAM.BMasm";
-        private readonly string BZpath = "D:/2019/repos/CPUTing/HIGHLEVELLANG";
-        private readonly string MarcoCommands = "D:/2019/repos/CPUTing/MarcoCommands.txt";
+        private string BZpath = "D:/2019/repos/CPUTing/HIGHLEVELLANG";
+        private string MarcoCommands = "D:/2019/repos/CPUTing/MarcoCommands.txt";
         private const string CHARS = @"qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKKLZXCVBNM1234567890#@";
         string MarcoArgs;
         string FileName;
@@ -43,6 +47,32 @@ namespace CPUTing
             Console.ResetColor();
             Console.CursorVisible = true;
             Console.Clear();
+            Console.WriteLine("Write the path to the programs");
+            BZpath = Console.ReadLine();
+            if (BZpath == "\r\n" || BZpath == "\n" || BZpath == "")
+            {
+                BZpath = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+                if (Directory.Exists(BZpath + "/CPU/BZCode") == false)
+                {
+                    Directory.CreateDirectory(BZpath + "/CPU/BZCode");
+                }
+                if (Directory.Exists(BZpath + "/CPU/Marcos") == false)
+                {
+                    Directory.CreateDirectory(BZpath + "/CPU/Marcos");
+                }
+                if (File.Exists(BZpath + "/CPU/BZCode/Main.BZ") == false)
+                {
+                    FileStream file = File.Create(BZpath + "/CPU/BZCode/Main.BZ", 1000);
+                    file.Close();
+                }
+                if (File.Exists(BZpath + "/CPU/Marcos/MarcoCommands.txt") == false)
+                {
+                    FileStream file = File.Create(BZpath + "/CPU/Marcos/MarcoCommands.txt", 1000);
+                    file.Close();
+                }
+                MarcoCommands = BZpath + "/CPU/Marcos/MarcoCommands.txt";
+                BZpath += "/CPU/BZCode";
+            }
             FileInfo[] files;
             DirectoryInfo directory;
             if (Directory.Exists(BZpath))
@@ -164,6 +194,11 @@ namespace CPUTing
                 Console.WriteLine(" " + MarcoMan.GetName(IndexCursor, 10)[i]);
             }
         }
+        public override void SetPath()
+        {
+            int Y;
+            DirectoryInfo directory = new DirectoryInfo("C:");
+        }
         public override void Build()
         {
             AssemblerOps.UseRegs = true;
@@ -280,116 +315,7 @@ namespace CPUTing
         }
         public override void Write()
         {
-            int DownLInes = 0;
-            Console.CursorVisible = true;
-            Console.CursorSize = 100;
-            int LINE = 0;
-            int XLINE = 0;
-            int EDIT = 0;
-            int MENU = 1;
-
-
-            code = File.ReadAllText(BZpath + "/" + FileName).Split("\r\n");
-            //Loop
-            while (MENU == 1)
-            {
-                ConsoleKeyInfo KEY = Console.ReadKey();
-                Console.Clear();
-                DoCompiler();
-                for (int i = DownLInes; i < code.Length; i++)
-                {
-                    Console.WriteLine(code[i].TrimStart('\t'));
-                }
-                if (KEY.Key == ConsoleKey.Insert)
-                {
-                    EDIT = 1;
-                    // Edit
-                }
-                if (KEY.Key == ConsoleKey.Escape)
-                {
-                    MENU = 0;
-                }
-                if (LINE != -1 && KEY.Key == ConsoleKey.UpArrow)
-                {
-                    LINE--;
-                }
-                if (LINE != 20 && KEY.Key == ConsoleKey.DownArrow)
-                {
-                    LINE++;
-                }
-                if (LINE == 20)
-                {
-                    LINE = 19;
-                    DownLInes++;
-                }
-                if (LINE == -1)
-                {
-                    LINE = 0;
-                    if (DownLInes != 0)
-                        DownLInes--;
-                }
-                Console.SetCursorPosition(0, LINE);
-                #region EDIT
-                int Write = 0;
-                string WriteText = "";
-                while (EDIT == 1)
-                {
-                    KEY = Console.ReadKey();
-                    Console.Clear();
-                    if (Write == 0)
-                    {
-                        for (int i = DownLInes; i < code.Length; i++)
-                        {
-                            Console.WriteLine(code[i].TrimStart('\t'));
-                        }
-                    }
-                    if (KEY.Key == ConsoleKey.Delete)
-                    {
-                        EDIT = 0;
-                        XLINE = 0;
-                        //exit edit
-                    }
-                    if (KEY.Key == ConsoleKey.Backspace)
-                    {
-                        code[LINE] = code[LINE].Remove(1);
-                    }
-                    MOVECursor(KEY, XLINE, LINE, out XLINE, out LINE);
-                    if (KEY.Key == ConsoleKey.F1)
-                    {
-                        Write = 1;
-                        WriteText = code[LINE];
-                    }
-                    #region Write
-                    while (Write == 1)
-                    {
-                        KEY = Console.ReadKey();
-                        MOVECursor(KEY, XLINE, LINE, out XLINE, out LINE);
-                        for (int t = 0; t < CHARS.Length; t++)
-                        {
-                            if (KEY.KeyChar == CHARS[t])
-                            {
-                                WriteText = WriteText.Replace(WriteText[XLINE], CHARS[t]);
-                                XLINE++;
-                            }
-                        }
-                        if (KEY.Key == ConsoleKey.Backspace)
-                        {
-                            WriteText = WriteText.Remove(XLINE, XLINE + 1); //todo this not work :(
-                            XLINE--;
-                        }
-                        if (KEY.Key == ConsoleKey.Escape)
-                        {
-                            Write = 0;
-                            if (code[LINE] != WriteText)
-                                code[LINE] = WriteText;
-                        }
-                        Console.SetCursorPosition(XLINE, LINE);
-                    }
-                    #endregion
-                    Console.SetCursorPosition(XLINE, LINE);
-                }
-                #endregion
-            }
+            write.StartWrite(BZpath, FileName);
         }
         public override void Dump()
         {
@@ -564,10 +490,13 @@ namespace CPUTing
                     {
                         int SubCursorY = 0;
                         int CursorIndexDown = 0;
-                        string[] Code = File.ReadAllText(BZFiles.ToArray()[CursorY].FullName).Split('\n');
+                        string[] Code = File.ReadAllText(BZFiles.ToArray()[CursorY - 2].FullName).Split('\n');
                         for (int i = CursorIndexDown; i < 10 + CursorIndexDown; i++)
                         {
-
+                            if(Code.Length > i)
+                            {
+                                Console.WriteLine(Code[i]);
+                            }
                         }
                         keyInfo = Console.ReadKey();
                         Console.Clear();
@@ -590,7 +519,11 @@ namespace CPUTing
                                 CursorIndexDown++;
                             }
                         }
-                        if (keyInfo.Key == ConsoleKey.E || keyInfo.Key == ConsoleKey.Escape)
+                        if (keyInfo.Key == ConsoleKey.E)
+                        {
+                            write.StartWrite(BZFiles.ToArray()[CursorY - 2].FullName);
+                        }
+                        if (keyInfo.Key == ConsoleKey.Delete || keyInfo.Key == ConsoleKey.Escape)
                         {
                             SubExit = true;
                         }
@@ -635,11 +568,11 @@ namespace CPUTing
                             BZFiles.Add(files[i]);
                         }
                     }
-                    Console.WriteLine("do you won't to delete " + BZFiles.ToArray()[CursorY - 3].Name + "? prees Y to do it");
+                    Console.WriteLine("do you won't to delete " + BZFiles.ToArray()[CursorY - 2].Name + "? prees Y to do it");
                     ConsoleKey key = Console.ReadKey().Key;
                     if(key == ConsoleKey.Y)
                     {
-                        File.Delete(BZFiles.ToArray()[CursorY - 3].FullName);
+                        File.Delete(BZFiles.ToArray()[CursorY - 2].FullName);
                     }
                     files = GetFiles();
                     Console.Clear();
@@ -681,20 +614,6 @@ namespace CPUTing
                     Console.WriteLine(files[i].Name);
                 }
             }
-        }
-        public void MOVECursor(ConsoleKeyInfo KEY, int XLINE, int LINE, out int XLINEO, out int LINEO)
-        {
-            if (XLINE != Console.WindowWidth && KEY.Key == ConsoleKey.RightArrow)
-            {
-                XLINE++;
-            }
-            if (XLINE != 0 && KEY.Key == ConsoleKey.LeftArrow)
-            {
-                XLINE--;
-            }
-            Console.SetCursorPosition(XLINE, LINE);
-            XLINEO = XLINE;
-            LINEO = LINE;
         }
         public void DUMPer(ushort CursorY)
         {
@@ -790,6 +709,7 @@ namespace CPUTing
     }
     public abstract class ConsoleMenu
     { 
+        public string[] _SetPath = new string[] { "Set", "set", "s", "S", "SP", "sp" };
         public string[] _Build = new string[] { "Build", "build", "B", "b", "bfc", "Bjc" };
         public string[] _Debug = new string[] { "Debug", "debug", "DB", "db", "dB", "Db" };
         public string[] _RUN = new string[] { "Run", "run", "r", "R", "RUN", "ruN"};
@@ -809,6 +729,10 @@ namespace CPUTing
                 if (_Build[i].Equals(user))
                 {
                     Build();
+                }
+                if (_SetPath[i].Equals(user))
+                {
+                    SetPath();
                 }
                 if (_Debug[i].Equals(user))
                 {
@@ -844,6 +768,7 @@ namespace CPUTing
                 }
             }
         }
+        public abstract void SetPath();
         public abstract void Inport();
         public abstract void Debug();
         public abstract void Build();

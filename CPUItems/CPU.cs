@@ -1,7 +1,7 @@
 ﻿using CrypticWizard.HexConverter;
 using System;
 using System.Numerics;
-namespace CPUTing
+namespace CPUTing.CPUItems
 {
     public struct CPU
     {
@@ -130,7 +130,7 @@ namespace CPUTing
         }
         public void TICK(MEM MEM, PORT PORT)
         {
-            if(LastINSTR == INSTR.UINT)
+            if (LastINSTR == INSTR.UINT)
                 FLAGS[FG_INTS] = 0;
             string test = "";
             test += MEM.RAM[INTH].ToString().PadLeft(2, '0'); //H
@@ -182,7 +182,7 @@ namespace CPUTing
                 MEM.RAM[ClearConsole] = 0;
             }
 
-            if(Debug == true)
+            if (Debug == true)
             {
                 DebugerForCPU.UpdateCPU(this, MEM, PORT);
             }
@@ -291,7 +291,7 @@ namespace CPUTing
         {
             if (HEXBYTES == 00)
             {
-                OUTSTR =  Convert.ToString(A, 16).PadLeft(2, '0');
+                OUTSTR = Convert.ToString(A, 16).PadLeft(2, '0');
                 return;
             }
             if (HEXBYTES == 01)
@@ -483,28 +483,28 @@ namespace CPUTing
                     CMPF(DATABUS);
                     break;
                 case INSTR.ANDI:
-                    Logic(DATABUS, false, CPUTing.LOGICOP.ADD);
+                    Logic(DATABUS, false, LOGICOPenum.ADD);
                     break;
                 case INSTR.NOTI:
-                    Logic(DATABUS, false, CPUTing.LOGICOP.NOT);
+                    Logic(DATABUS, false, LOGICOPenum.NOT);
                     break;
                 case INSTR.ORIM:
-                    Logic(DATABUS, false, CPUTing.LOGICOP.OR);
+                    Logic(DATABUS, false, LOGICOPenum.OR);
                     break;
                 case INSTR.NORI:
-                    Logic(DATABUS, false, CPUTing.LOGICOP.NOR);
+                    Logic(DATABUS, false, LOGICOPenum.NOR);
                     break;
                 case INSTR.ANDR:
-                    Logic(DATABUS, true, CPUTing.LOGICOP.ADD);
+                    Logic(DATABUS, true, LOGICOPenum.ADD);
                     break;
                 case INSTR.NOTR:
-                    Logic(DATABUS, true, CPUTing.LOGICOP.NOT);
+                    Logic(DATABUS, true, LOGICOPenum.NOT);
                     break;
                 case INSTR.ORRE:
-                    Logic(DATABUS, true, CPUTing.LOGICOP.OR);
+                    Logic(DATABUS, true, LOGICOPenum.OR);
                     break;
                 case INSTR.NORR:
-                    Logic(DATABUS, true, CPUTing.LOGICOP.NOR);
+                    Logic(DATABUS, true, LOGICOPenum.NOR);
                     break;
                 case INSTR.MOBA:
                     if (BA == true)
@@ -581,7 +581,7 @@ namespace CPUTing
                     LODF(DATABUS);
                     break;
                 case INSTR.LOBS:
-                    if(ReadWrite == false)
+                    if (ReadWrite == false)
                     {
                         PC--;
                     }
@@ -697,7 +697,7 @@ namespace CPUTing
                         mem.RAM[Addr] = B;
                         break;
                     case Reg.C:
-                        mem.RAM[Addr] = (byte)C;
+                        mem.RAM[Addr] = C;
                         break;
                     case Reg.D:
                         mem.RAM[Addr] = D;
@@ -722,8 +722,8 @@ namespace CPUTing
                         ALUCMP(A, B);
                         break;
                     case Reg.C:
-                        A = (byte)(A + (byte)C);
-                        ALUCMP(A, (byte)C);
+                        A = (byte)(A + C);
+                        ALUCMP(A, C);
                         break;
                     case Reg.D:
                         A = (byte)(A + D);
@@ -754,8 +754,8 @@ namespace CPUTing
                         ALUCMP(A, B);
                         break;
                     case Reg.C:
-                        A = (byte)(A - (byte)C);
-                        ALUCMP(A, (byte)C);
+                        A = (byte)(A - C);
+                        ALUCMP(A, C);
                         break;
                     case Reg.D:
                         A = (byte)(A - D);
@@ -771,9 +771,9 @@ namespace CPUTing
                 ALUCMP(A, imm);
             }
         }
-        public void ALUCMP(byte REG, byte IMM)
+        public void ALUCMP(byte REGData, byte IMM)
         {
-            if (REG + IMM > 0xFF || REG + IMM < 0x00)
+            if (REGData + IMM > 0xFF || REGData + IMM < 0x00)
             {
                 FLAGS[FG_OVER] = 1;
                 FLAGS[FG_CARR] = 1;
@@ -790,25 +790,25 @@ namespace CPUTing
         }
         public void PUHR(MEM MEM, byte Imm)
         {
-            byte reg = 0;
+            byte regData = 0;
             switch (GetReg(Imm))
             {
                 case Reg.A:
-                    reg = A;
+                    regData = A;
                     break;
                 case Reg.B:
-                    reg = B;
+                    regData = B;
                     break;
                 case Reg.C:
-                    reg = (byte)C;
+                    regData = C;
                     break;
                 case Reg.D:
-                    reg = D;
+                    regData = D;
                     break;
                 default:
                     break;
             }
-            MEM.RAM[MEM.RAM[SP]] = reg;
+            MEM.RAM[MEM.RAM[SP]] = regData;
             MEM.RAM[SP]++;
         }
         public void PUSH(MEM MEM, byte Imm)
@@ -827,7 +827,7 @@ namespace CPUTing
         public void CALL(MEM MEM, ushort Imm)
         {
             string IMMS = Convert.ToString(Imm).PadLeft(4, '0');
-            MEM.RAM[SUPL] = byte.Parse(IMMS.Remove(0,2)); //L
+            MEM.RAM[SUPL] = byte.Parse(IMMS.Remove(0, 2)); //L
             MEM.RAM[SUPH] = byte.Parse(IMMS.Remove(2, 2)); //H
         }
         public void RESR(MEM MEM)
@@ -873,7 +873,7 @@ namespace CPUTing
                     break;
                 case Reg.C:
                     C = Imm;
-                    CMPREGS((byte)C);
+                    CMPREGS(C);
                     break;
                 case Reg.D:
                     D = Imm;
@@ -896,16 +896,16 @@ namespace CPUTing
             }
 
         }
-        void CMPREGS(byte Reg)
+        void CMPREGS(byte RegByte)
         {
-            if (Reg == 0)
+            if (RegByte == 0)
                 FLAGS[FG_ZERO] = 1;
             else
                 FLAGS[FG_ZERO] = 0;
         }
-        void CMPINCANDDEC(byte Reg, byte PreReg)
+        void CMPINCANDDEC(byte RegData, byte PreReg)
         {
-            if(PreReg == 0xFF && Reg == 0)
+            if (PreReg == 0xFF && RegData == 0)
             {
                 FLAGS[FG_OVER] = 1;
             }
@@ -913,7 +913,7 @@ namespace CPUTing
             {
                 FLAGS[FG_OVER] = 0;
             }
-            if(PreReg == 0 && Reg == 0xFF)
+            if (PreReg == 0 && RegData == 0xFF)
             {
                 FLAGS[FG_PLUS] = 1;
             }
@@ -992,9 +992,9 @@ namespace CPUTing
         {
             PC = ADDR;
         }
-        public void CMP(byte REG, byte imm)
+        public void CMP(byte REGData, byte imm)
         {
-            if (REG == imm)
+            if (REGData == imm)
             {
                 FLAGS[FG_TRUE] = 1;
             }
@@ -1002,7 +1002,7 @@ namespace CPUTing
             {
                 FLAGS[FG_TRUE] = 0;
             }
-            if (REG == 0)
+            if (REGData == 0)
             {
                 FLAGS[FG_ZERO] = 1;
             }
@@ -1010,7 +1010,7 @@ namespace CPUTing
             {
                 FLAGS[FG_ZERO] = 0;
             }
-            if (REG < imm)
+            if (REGData < imm)
             {
                 FLAGS[FG_LESS] = 1;
             }
@@ -1019,9 +1019,9 @@ namespace CPUTing
                 FLAGS[FG_LESS] = 0;
             }
         }
-        public void Logic(byte Imm, bool RegORImm, LOGICOP lOGICOP)
+        public void Logic(byte Imm, bool RegORImm, LOGICOPenum lOGICOP)
         {
-            if(RegORImm == true) //REG
+            if (RegORImm == true) //REG
             {
                 switch (GetReg(Imm))
                 {
@@ -1032,7 +1032,7 @@ namespace CPUTing
                         A = LOGICOP(lOGICOP, A, B);
                         break;
                     case Reg.C:
-                        A = LOGICOP(lOGICOP, A, (byte)C);
+                        A = LOGICOP(lOGICOP, A, C);
                         break;
                     case Reg.D:
                         A = LOGICOP(lOGICOP, A, D);
@@ -1046,17 +1046,17 @@ namespace CPUTing
                 A = LOGICOP(lOGICOP, A, Imm);
             }
         }
-        byte LOGICOP(LOGICOP lOGICOP, byte F, byte L)
+        byte LOGICOP(LOGICOPenum lOGICOP, byte F, byte L)
         {
             switch (lOGICOP)
             {
-                case CPUTing.LOGICOP.ADD:
+                case LOGICOPenum.ADD:
                     return (byte)(F & L);
-                case CPUTing.LOGICOP.NOT:
+                case LOGICOPenum.NOT:
                     return NOT(F);
-                case CPUTing.LOGICOP.OR:
+                case LOGICOPenum.OR:
                     return (byte)(F | L);
-                case CPUTing.LOGICOP.NOR:
+                case LOGICOPenum.NOR:
                     return NOT((byte)(F | L));
                 default:
                     break;
@@ -1083,7 +1083,7 @@ namespace CPUTing
             for (int i = 0; i < Simm.Length; i++)
             {
                 result = (byte)(byte.Parse(Simm[i].ToString()) & FLAGS[i]);
-                if(result == 1)
+                if (result == 1)
                 {
                     FLAGS[FG_TRUE] = 1;
                 }
@@ -1118,39 +1118,39 @@ namespace CPUTing
             return Buffer;
 
         }
-        public void Rotate(byte Reg, bool left)
+        public void Rotate(byte RegByte, bool left)
         {
-            switch (GetReg(Reg))
+            switch (GetReg(RegByte))
             {
-                case CPUTing.Reg.A:
+                case Reg.A:
                     A = rot(A, left);
                     break;
-                case CPUTing.Reg.B:
+                case Reg.B:
                     B = rot(B, left);
                     break;
-                case CPUTing.Reg.C:
+                case Reg.C:
                     C = rot(C, left);
                     break;
-                case CPUTing.Reg.D:
+                case Reg.D:
                     D = rot(D, left);
                     break;
             }
         }
-        public void LogicalShift(byte Reg, bool Left)
+        public void LogicalShift(byte RegByte, bool Left)
         {
             byte Input = 0;
-            switch (GetReg(Reg))
+            switch (GetReg(RegByte))
             {
-                case CPUTing.Reg.A:
+                case Reg.A:
                     Input = A;
                     break;
-                case CPUTing.Reg.B:
+                case Reg.B:
                     Input = B;
                     break;
-                case CPUTing.Reg.C:
+                case Reg.C:
                     Input = C;
                     break;
-                case CPUTing.Reg.D:
+                case Reg.D:
                     Input = D;
                     break;
             }
@@ -1200,31 +1200,31 @@ namespace CPUTing
             }
 
             byte OutPut = Convert.ToByte(BinString, 2);
-            switch (GetReg(Reg))
+            switch (GetReg(RegByte))
             {
-                case CPUTing.Reg.A:
+                case Reg.A:
                     A = OutPut;
                     break;
-                case CPUTing.Reg.B:
+                case Reg.B:
                     B = OutPut;
                     break;
-                case CPUTing.Reg.C:
+                case Reg.C:
                     C = OutPut;
                     break;
-                case CPUTing.Reg.D:
+                case Reg.D:
                     D = OutPut;
                     break;
             }
         }
-        public byte rot(byte Reg, bool left)
+        public byte rot(byte RegValues, bool left)
         {
             if (left == true)
             {
-                return (byte)BitOperations.RotateLeft(Reg, 1);
+                return (byte)BitOperations.RotateLeft(RegValues, 1);
             }
             else
             {
-                return (byte)BitOperations.RotateRight(Reg, 1);
+                return (byte)BitOperations.RotateRight(RegValues, 1);
             }
         }
         public void WriteIn(byte Data)
@@ -1240,15 +1240,15 @@ namespace CPUTing
         public void GETADDR(MEM MEM)
         {
             PC++;
-            if(DATABUS == 0) //ASB ADDR
+            if (DATABUS == 0) //ASB ADDR
             {
                 DECODE(MEM.ROM[PC], true);
             }
-            else if(DATABUS == 1) //ZP ADDR
+            else if (DATABUS == 1) //ZP ADDR
             {
                 DECODE(MEM.ROM[PC], false, true);
             }
-            else if(DATABUS == 2)
+            else if (DATABUS == 2)
             {
                 DECODE(MEM.ROM[PC], false, true);
             }

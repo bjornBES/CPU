@@ -1,4 +1,4 @@
-﻿namespace CPUTing
+﻿namespace CPUTing.CPUItems
 {
     public enum INSTR
     {
@@ -67,7 +67,7 @@
         LOBS = 0x3E,
         LOAR = 0x3F,
         LOGC = 0x40,
-    }       
+    }
     public enum Reg
     {
         A = 0x00,
@@ -76,7 +76,7 @@
         D = 0x03,
 
     }
-    public enum LOGICOP
+    public enum LOGICOPenum
     {
         ADD,
         NOT,

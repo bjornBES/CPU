@@ -1,55 +1,8 @@
-﻿using CrypticWizard.HexConverter;
+﻿using CPUTing.CPUItems;
+using CrypticWizard.HexConverter;
 using System;
-namespace CPUTing
+namespace CPUTing.AssemblerMan
 {
-    public class Lables
-    {
-        public string name;
-        public string addr;
-    }
-    public class Vars
-    {
-        public string name;
-        public string Value;
-    }
-    public static class AssemblerOps
-    {
-        //ZP funs
-        public static bool UseRegs = false;
-        public static bool UseDots = false;
-        public static bool UseChars = false;
-        public static bool UseStrings = false;
-        public static bool UseKeyTags = false;
-        public static bool UseLables = false;
-        public static bool UseVars = false;
-    }
-    public class AssSets
-    {
-        public const string ASSEMBLERTOADDR = ".ORG &";
-        public const string SETADDRINCODE = ".word";
-        public const string SETADDRINROM = ".rword";
-        public const char ADDR = '&';
-        public const char VAR = '!';
-        public const char ZPC = '%';
-        public const char RA = 'A';
-        public const char RB = 'B';
-        public const char RC = 'C';
-        public const char RD = 'D';
-        public const char LABLES = ':';
-        public const char CHAR = '\'';
-        public const char STRING = '\"';
-        public const char COMM = ';';
-        public const char IMMHEX = '#';
-        public const char EMETY = ' ';
-        public const string INSTR = "*";
-        public const string BINTAG = "0b";
-        public const string ESCTAG = "ESC";
-        public const string NLTAG = "NL";
-        public const string AUPTAG = "KUP";
-        public const string ADOTAG = "KDOWN";
-        public const string ALETAG = "KLEFT";
-        public const string ARITAG = "KRIGHT";
-    }
     public class Assembler : AssSets
     {
         public string[] ADDRCODES = { "CALL", "STOI", "LOAA", "STOA", "LOAB", "STOB", "LOAC", "STOC", "LOAD", "STOD", "INTB", "JUMP", "JINZ", "JINT", "JIFT", "JIFP", "JINP", "GROM" };
@@ -182,7 +135,6 @@ namespace CPUTing
                     {
                         if (ASMCODE[ASMCODEINDEX].Contains(ADDR))
                         {
-                            //todo fix this see in Helloworld.BMasm
                             ADDRs1 = ASMCODE[ASMCODEINDEX][7].ToString() + ASMCODE[ASMCODEINDEX][8].ToString(); // high
                             ADDRs2 = ASMCODE[ASMCODEINDEX][9].ToString() + ASMCODE[ASMCODEINDEX][10].ToString(); // low
                             fullADDR = ADDRs1 + ADDRs2;
@@ -256,7 +208,6 @@ namespace CPUTing
                 {
                     Lables[LABLEINDEX].name = ASMCODE[ASMCODEINDEX].Trim(LABLES);
                     Lables[LABLEINDEX].addr = PCADDR.ToString().PadLeft(4, '0');
-                    // todo lables not working
                     LABLEINDEX++;
                 }
 
@@ -330,7 +281,8 @@ namespace CPUTing
                                 MCCODE[i] = MCCODE[i].Split(' ', 2)[0] + " " + HEXADDR.PadLeft(4, '0');
                             }
                         }
-                    } }
+                    }
+                }
                 if (AssemblerOps.UseVars)
                 {
                     for (int l = 0; l < VARINDEX; l++)
@@ -355,10 +307,10 @@ namespace CPUTing
         }
         public void PreAssembler()
         {
-            if(AssemblerOps.UseChars)
+            if (AssemblerOps.UseChars)
                 SPLITCHAR();
 
-            if(AssemblerOps.UseStrings)
+            if (AssemblerOps.UseStrings)
                 SPLITSTRING();
             for (int i = 0; i < MCCODE.Length; i++)
             {
@@ -407,7 +359,7 @@ namespace CPUTing
                     string letter = "";
                     for (int S = 0; S < Len; S++)
                     {
-                        byte[] HEX = { ((byte)MCCODE[i][index + S + 1]) };
+                        byte[] HEX = { (byte)MCCODE[i][index + S + 1] };
                         letterHEX += HexConverter.GetHexString(HEX) + " ";
                         letter += MCCODE[i][index + S + 1];
                     }
@@ -437,7 +389,7 @@ namespace CPUTing
                     OPCODE = SPLIT.Split(' ')[0];
                     if (SPLIT.Contains('('))
                     {
-                        if(AssemblerOps.UseStrings)
+                        if (AssemblerOps.UseStrings)
                             ARGS1 = SPLIT.Split('(', ')')[1];
                     }
                     else
@@ -527,7 +479,7 @@ namespace CPUTing
                     }
                     else if (ARGS1.Length == 4) // ADDR & ARGS2
                     {
-                        if(iNSTR[i] == CPUTing.INSTR.STOI)
+                        if (iNSTR[i] == CPUItems.INSTR.STOI)
                             MCCODE[MCINDEX] = code + "01";
                         else
                             MCCODE[MCINDEX] = code + "00";
