@@ -6,6 +6,7 @@ using CrypticWizard.HexConverter;
 using System.Numerics;
 using CPUTing.CPUItems;
 using CPUTing.AssemblerMan;
+using System.Linq;
 
 namespace CPUTing
 {
@@ -16,22 +17,18 @@ namespace CPUTing
         private CPU CPU;
         private MEM MEM;
         private MEM MEM1;
+        private FileSystem FileSystem;
         private MarcoMan MarcoMan;
         private Complier Complier;
         private readonly Assembler Assembler;
         private string[] code;
         private readonly bool useCompiler = false;
-        private readonly string BMasmpath = "D:/2019/repos/CPUTing/BMASM/PROGRAM.BMasm";
-        private string BZpath = "D:/2019/repos/CPUTing/HIGHLEVELLANG";
-        private string MarcoCommands = "D:/2019/repos/CPUTing/MarcoCommands.txt";
-        private const string CHARS = @"qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKKLZXCVBNM1234567890#@";
         string MarcoArgs;
         string FileName;
         private static void Main()
         {
             _ = new Program();
         }
-        bool RUN = true;
         private Program()
         {
             Assembler = new Assembler();
@@ -47,58 +44,14 @@ namespace CPUTing
             Console.ResetColor();
             Console.CursorVisible = true;
             Console.Clear();
-            Console.WriteLine("Write the path to the programs");
-            BZpath = Console.ReadLine();
-            if (BZpath == "\r\n" || BZpath == "\n" || BZpath == "")
-            {
-                BZpath = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-                if (Directory.Exists(BZpath + "/CPU/BZCode") == false)
-                {
-                    Directory.CreateDirectory(BZpath + "/CPU/BZCode");
-                }
-                if (Directory.Exists(BZpath + "/CPU/Marcos") == false)
-                {
-                    Directory.CreateDirectory(BZpath + "/CPU/Marcos");
-                }
-                if (File.Exists(BZpath + "/CPU/BZCode/Main.BZ") == false)
-                {
-                    FileStream file = File.Create(BZpath + "/CPU/BZCode/Main.BZ", 1000);
-                    file.Close();
-                }
-                if (File.Exists(BZpath + "/CPU/Marcos/MarcoCommands.txt") == false)
-                {
-                    FileStream file = File.Create(BZpath + "/CPU/Marcos/MarcoCommands.txt", 1000);
-                    file.Close();
-                }
-                MarcoCommands = BZpath + "/CPU/Marcos/MarcoCommands.txt";
-                BZpath += "/CPU/BZCode";
-            }
-            FileInfo[] files;
-            DirectoryInfo directory;
-            if (Directory.Exists(BZpath))
-            {
-                directory = Directory.CreateDirectory(BZpath);
-            }
-            else
-            {
-                directory = new DirectoryInfo(BZpath);
-            }
-            files = directory.GetFiles();
-            for (int i = 0; i < files.Length; i++)
-            {
-                if (files[i].Name == "Main.BZ")
-                {
-                    FileName = "Main.BZ";
-                }
-            }
+            FileSystem = new FileSystem();
             UPDATE();
         }
-        string[] ASSOPS;
-        //this value is for the marcos
-        int ShowDisDown = 0;
+        bool RUN = true;
+        string User = "";
         private void UPDATE()
         {
-            MarcoMan.SetPath(MarcoCommands);
+            MarcoMan.SetPath(FileSystem.MarcoCommands);
             MarcoMan.SplitCommands();
             Console.SetWindowSize(40, 20);
             Console.SetBufferSize(40, 20);
@@ -106,108 +59,90 @@ namespace CPUTing
             {
                 Console.Clear();
                 Console.SetCursorPosition(0, 19);
-                string User = Console.ReadLine();
-                if (User.Contains(' '))
-                {
-                    ASSOPS = User.Split(' ');
-                }
-                if(User == "M" || User == "Marco" || User == "m" || User == "marco")
-                {
-                    const int MaxUp = 0;
-                    const int MaxDown = 246;
-                    bool Exit = false;
-                    int IndexedCursor = 0;
-                    int limitedCursorPos = 2;
-                    ShowMarcoNames(0);
-                    Console.Clear();
-                    Console.SetCursorPosition(0, 2);
-                    do
-                    {
-                        Console.SetCursorPosition(0, 0);
-                        Console.WriteLine("sel a marco and hit enter to run it");
-                        ConsoleKeyInfo keyInfo = Console.ReadKey();
-                        Console.Clear();
-                        if (keyInfo.Key == ConsoleKey.Enter)
-                        {
-                            string[] SplitMarcoCode = MarcoMan.GetCommands(IndexedCursor);
-                            for (int i = 0; i < SplitMarcoCode.Length; i++)
-                            {
-                                if (SplitMarcoCode[i].Contains(' '))
-                                {
-                                    MarcoArgs = SplitMarcoCode[i].Split(' ', 2)[1];
-                                    GetFuns(SplitMarcoCode[i].Split(' ', 2)[0]);
-                                }
-                                else
-                                {
-                                    GetFuns(SplitMarcoCode[i]);
-                                }
-                            }
-                        }
-                            if (limitedCursorPos != 2 && keyInfo.Key == ConsoleKey.UpArrow)
-                            {
-                                limitedCursorPos--;
-                                limitedCursorPos = Math.Clamp(limitedCursorPos, 2, 11);
-                                if (IndexedCursor != MaxUp && limitedCursorPos == 2)
-                                    IndexedCursor--;
-                            }
-                            if (IndexedCursor != MaxUp && keyInfo.Key == ConsoleKey.PageUp)
-                            {
-                                limitedCursorPos = Math.Clamp(limitedCursorPos, 2, 11);
-                                IndexedCursor--;
-                            }
-                        if (IndexedCursor != MaxDown)
-                        {
-                            if (keyInfo.Key == ConsoleKey.DownArrow)
-                            {
-                                limitedCursorPos++;
-                                limitedCursorPos = Math.Clamp(limitedCursorPos, 2, 11);
-                                if (IndexedCursor != MaxDown && limitedCursorPos == 11)
-                                    IndexedCursor++;
-                            }
-                            if (keyInfo.Key == ConsoleKey.PageDown)
-                            {
-                                limitedCursorPos = Math.Clamp(limitedCursorPos, 2, 11);
-                                IndexedCursor++;
-                            }
-                        }
-                        if (keyInfo.Key == ConsoleKey.E || keyInfo.Key == ConsoleKey.Escape)
-                        {
-                            Exit = true;
-                        }
-                        Console.SetCursorPosition(0, 2);
-                        ShowMarcoNames(IndexedCursor);
-                        Console.SetCursorPosition(0, limitedCursorPos);
-                        Console.Write('@');
-
-                        Console.SetCursorPosition(0, 13);
-                        Console.WriteLine("IndexedCursor" + IndexedCursor);
-                        Console.WriteLine("limitedCursorPos" + limitedCursorPos);
-                    } while (Exit == false);
-                }
+                User = Console.ReadLine();
                 GetFuns(User);
             }
         }
-        public void ShowMarcoNames(int IndexCursor)
+        public override void Marco()
         {
-            for (int i = 0; i < MarcoMan.GetName(IndexCursor, 10).Length; i++)
+            const int MaxUp = 0;
+            const int MaxDown = 246;
+            bool Exit = false;
+            int IndexedCursor = 0;
+            int limitedCursorPos = 2;
+            ShowMarcoNames(0);
+            Console.Clear();
+            Console.SetCursorPosition(0, 2);
+            do
             {
-                Console.WriteLine(" " + MarcoMan.GetName(IndexCursor, 10)[i]);
-            }
+                Console.SetCursorPosition(0, 0);
+                Console.WriteLine("sel a marco and hit enter to run it");
+                ConsoleKeyInfo keyInfo = Console.ReadKey();
+                Console.Clear();
+                if (keyInfo.Key == ConsoleKey.Enter)
+                {
+                    string[] SplitMarcoCode = MarcoMan.GetCommands(IndexedCursor);
+                    for (int i = 0; i < SplitMarcoCode.Length; i++)
+                    {
+                        if (SplitMarcoCode[i].Contains(' '))
+                        {
+                            MarcoArgs = SplitMarcoCode[i].Split(' ', 2)[1];
+                            GetFuns(SplitMarcoCode[i].Split(' ', 2)[0]);
+                        }
+                        else
+                        {
+                            GetFuns(SplitMarcoCode[i]);
+                        }
+                    }
+                }
+                if (limitedCursorPos != 2 && keyInfo.Key == ConsoleKey.UpArrow)
+                {
+                    limitedCursorPos--;
+                    limitedCursorPos = Math.Clamp(limitedCursorPos, 2, 11);
+                    if (IndexedCursor != MaxUp && limitedCursorPos == 2)
+                        IndexedCursor--;
+                }
+                if (IndexedCursor != MaxUp && keyInfo.Key == ConsoleKey.PageUp)
+                {
+                    limitedCursorPos = Math.Clamp(limitedCursorPos, 2, 11);
+                    IndexedCursor--;
+                }
+                if (IndexedCursor != MaxDown)
+                {
+                    if (keyInfo.Key == ConsoleKey.DownArrow)
+                    {
+                        limitedCursorPos++;
+                        limitedCursorPos = Math.Clamp(limitedCursorPos, 2, 11);
+                        if (IndexedCursor != MaxDown && limitedCursorPos == 11)
+                            IndexedCursor++;
+                    }
+                    if (keyInfo.Key == ConsoleKey.PageDown)
+                    {
+                        limitedCursorPos = Math.Clamp(limitedCursorPos, 2, 11);
+                        IndexedCursor++;
+                    }
+                }
+                if (keyInfo.Key == ConsoleKey.E || keyInfo.Key == ConsoleKey.Escape)
+                {
+                    Exit = true;
+                }
+                Console.SetCursorPosition(0, 2);
+                ShowMarcoNames(IndexedCursor);
+                Console.SetCursorPosition(0, limitedCursorPos);
+                Console.Write('@');
+
+                Console.SetCursorPosition(0, 13);
+                Console.WriteLine("IndexedCursor" + IndexedCursor);
+                Console.WriteLine("limitedCursorPos" + limitedCursorPos);
+            } while (Exit == false);
         }
         public override void SetPath()
         {
-            int Y;
             DirectoryInfo directory = new DirectoryInfo("C:");
         }
         public override void Build()
         {
-            AssemblerOps.UseRegs = true;
-            AssemblerOps.UseDots = true;
-            AssemblerOps.UseChars = true;
-            AssemblerOps.UseStrings = true;
-            AssemblerOps.UseKeyTags = true;
-            AssemblerOps.UseLables = true;
-            AssemblerOps.UseVars = true;
+            AssemblerSettings.InterpretString(User);
             Assembler.Reset();
             if (useCompiler == true)
             {
@@ -217,27 +152,6 @@ namespace CPUTing
             {
                 RUNRAWCODE();
             }
-            /*
-            for (int i = 0; i < ASSOPS.Length; i++)
-            {
-                if(ASSOPS[i] == "-I")
-                {
-
-                }
-                if (ASSOPS[i] == "-o")
-                {
-
-                }
-                if (ASSOPS[i] == "-F")
-                {
-                    //formats in AssmblerOps.txt
-                }
-                if (ASSOPS[i] == "-z")
-                {
-
-                }
-            }
-            */
             Assembler.Start();
 
             if (Assembler.error == "")
@@ -315,7 +229,7 @@ namespace CPUTing
         }
         public override void Write()
         {
-            write.StartWrite(BZpath, FileName);
+            write.StartWrite(FileSystem.BZpath, FileName);
         }
         public override void Dump()
         {
@@ -474,26 +388,21 @@ namespace CPUTing
                 Console.SetCursorPosition(0, 0);
                 Console.WriteLine("sel a marco and hit enter to run it");
                 ConsoleKeyInfo keyInfo = Console.ReadKey();
+                FileSystem.GetFiles();
+                List<FileInfo> BZFiles = FileSystem.files.ToList();
+                FileInfo file = BZFiles.ToArray()[CursorY - 2];
                 Console.Clear();
                 if (keyInfo.Key == ConsoleKey.Enter)
                 {
-                    List<FileInfo> BZFiles = new List<FileInfo>();
-                    for (int i = 0; i < files.Length; i++)
-                    {
-                        if (files[i].Extension == ".BZ")
-                        {
-                            BZFiles.Add(files[i]);
-                        }
-                    }
                     bool SubExit = false;
                     do
                     {
                         int SubCursorY = 0;
                         int CursorIndexDown = 0;
-                        string[] Code = File.ReadAllText(BZFiles.ToArray()[CursorY - 2].FullName).Split('\n');
+                        string[] Code = File.ReadAllText(file.FullName).Split('\n');
                         for (int i = CursorIndexDown; i < 10 + CursorIndexDown; i++)
                         {
-                            if(Code.Length > i)
+                            if (Code.Length > i)
                             {
                                 Console.WriteLine(Code[i]);
                             }
@@ -521,7 +430,7 @@ namespace CPUTing
                         }
                         if (keyInfo.Key == ConsoleKey.E)
                         {
-                            write.StartWrite(BZFiles.ToArray()[CursorY - 2].FullName);
+                            write.StartWrite(file.FullName);
                         }
                         if (keyInfo.Key == ConsoleKey.Delete || keyInfo.Key == ConsoleKey.Escape)
                         {
@@ -552,7 +461,7 @@ namespace CPUTing
                     Console.Clear();
                     Console.WriteLine("Write the Name of the File");
                     string FileName = Console.ReadLine();
-                    FileStream fileStream = File.Create(BZpath + "/" + FileName + ".BZ", 100);
+                    FileStream fileStream = File.Create(FileSystem.BZpath + "/" + FileName + ".BZ", 100);
                     files = GetFiles();
                     fileStream.Close();
                     Console.Clear();
@@ -560,19 +469,11 @@ namespace CPUTing
                 if (keyInfo.Key == ConsoleKey.D)
                 {
                     Console.Clear();
-                    List<FileInfo> BZFiles = new List<FileInfo>();
-                    for (int i = 0; i < files.Length; i++)
-                    {
-                        if (files[i].Extension == ".BZ")
-                        {
-                            BZFiles.Add(files[i]);
-                        }
-                    }
-                    Console.WriteLine("do you won't to delete " + BZFiles.ToArray()[CursorY - 2].Name + "? prees Y to do it");
+                    Console.WriteLine("do you won't to delete " + file.Name + "? prees Y to do it");
                     ConsoleKey key = Console.ReadKey().Key;
-                    if(key == ConsoleKey.Y)
+                    if (key == ConsoleKey.Y)
                     {
-                        File.Delete(BZFiles.ToArray()[CursorY - 2].FullName);
+                        File.Delete(file.FullName);
                     }
                     files = GetFiles();
                     Console.Clear();
@@ -591,18 +492,11 @@ namespace CPUTing
                 Console.WriteLine("Page" + Page);
             } while (Exit == false);
         }
+
         public FileInfo[] GetFiles()
         {
-            DirectoryInfo directory;
-            if (Directory.Exists(BZpath))
-            {
-                directory = Directory.CreateDirectory(BZpath);
-            }
-            else
-            {
-                directory = new DirectoryInfo(BZpath);
-            }
-            return directory.GetFiles();
+            FileSystem.GetFiles();
+            return FileSystem.BZCode.GetFiles();
         }
         public void ShowFiles(FileInfo[] files)
         {
@@ -641,7 +535,7 @@ namespace CPUTing
         }
         private void RUNRAWCODE()
         {
-            code = File.ReadAllText(BMasmpath).Split("\r\n");
+            code = File.ReadAllText(FileSystem.BMasmpath).Split("\r\n");
             for (int i = 0; i < code.Length; i++)
             {
                 Assembler.ASMCODE[i] = code[i];
@@ -650,9 +544,9 @@ namespace CPUTing
         }
         void DoCompiler()
         {
-            code = File.ReadAllText(BZpath + "/" + FileName).Split("\r\n");
+            code = File.ReadAllText(FileSystem.BZpath + "/" + FileName).Split("\r\n");
             Complier.Start(code);
-            code = File.ReadAllText(BZpath + "/" + FileName).Split("\r\n");
+            code = File.ReadAllText(FileSystem.BZpath + "/" + FileName).Split("\r\n");
             //Complier.Start(code, false);
         }
         string[] ASMCODE;
@@ -676,6 +570,13 @@ namespace CPUTing
                 {
                     Console.WriteLine(ERORRS.Split(',')[i]);
                 }
+            }
+        }
+        public void ShowMarcoNames(int IndexCursor)
+        {
+            for (int i = 0; i < MarcoMan.GetName(IndexCursor, 10).Length; i++)
+            {
+                Console.WriteLine(" " + MarcoMan.GetName(IndexCursor, 10)[i]);
             }
         }
         private void FILLCODE()
@@ -710,6 +611,7 @@ namespace CPUTing
     public abstract class ConsoleMenu
     { 
         public string[] _SetPath = new string[] { "Set", "set", "s", "S", "SP", "sp" };
+        public string[] _Marcos = new string[] { "Marco", "marco", "M", "m", "RM", "rm" };
         public string[] _Build = new string[] { "Build", "build", "B", "b", "bfc", "Bjc" };
         public string[] _Debug = new string[] { "Debug", "debug", "DB", "db", "dB", "Db" };
         public string[] _RUN = new string[] { "Run", "run", "r", "R", "RUN", "ruN"};
@@ -766,9 +668,14 @@ namespace CPUTing
                 {
                     Files();
                 }
+                if (_Marcos[i].Equals(user))
+                {
+                    Marco();
+                }
             }
         }
         public abstract void SetPath();
+        public abstract void Marco();
         public abstract void Inport();
         public abstract void Debug();
         public abstract void Build();

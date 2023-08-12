@@ -1,6 +1,6 @@
 ﻿namespace CPUTing.AssemblerMan
 {
-    public class Lables
+    public class Labels
     {
         public string name;
         public string addr;

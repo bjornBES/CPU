@@ -12,7 +12,7 @@
         public const char RB = 'B';
         public const char RC = 'C';
         public const char RD = 'D';
-        public const char LABLES = ':';
+        public const char LABELS = ':';
         public const char CHAR = '\'';
         public const char STRING = '\"';
         public const char COMM = ';';

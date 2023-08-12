@@ -1,23 +1,36 @@
-﻿B -I filename.bmasm -o filename.obj -F format
-Bfc -i inputfile.bmasm -o outputfile.obj -F format -z (1-5)
-B -F format
+﻿B -F format
+Bfc -F format
 
--I
-	input asm file
-
--o 
-	output that is the obj code / mach code
-	if emty makes a new file in the -I dir
-
--f
+-F	
 	format
 		UseRegs		-UseR
-		UseDots		-UseDCommands
-		UseChars	-UseCharStrings
-		UseStrings	-UseStrings
-		UseKeyTags	-UseKeyTags
-		UseLables	-UseLableTags
-		UseVars		-UseVarTags
+		this command can be used to get a specific Value using the Regs in the CPU
 
--z
-	is the speed of the CPU
+		UseDots		-UseDCommands
+		Using this will let the user use dot commands
+		these commands can be used to Move around in the Code
+		and place commands at a specific address using the .ORG command
+		the user can also use .word and .rword for setting a value in RAM 
+		using .word and ROM using .rword
+
+		UseChars	-UseCharStrings
+		Using this will let the user use char in the code
+		the user can use the ' char around the char they 
+		will use
+
+		UseStrings	-UseStrings
+		Using this will let the user use an array of chars in the code
+		the user can use the " char around the string they will use
+
+		UseKeyTags	-UseKeyTags
+		Using this will let the user use Keynames instead of using the key value
+
+		UseLabels	-UseLabelTags
+		Labels are used to mark a specific address to jump to or call to
+
+		UseVars		-UseVarTags
+		Using this will let the user use variables 
+		in the Code using the '!' char and a Name then an addr/Imm8
+
+-A
+	Use All Formats

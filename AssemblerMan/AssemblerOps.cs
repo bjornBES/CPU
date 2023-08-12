@@ -8,7 +8,7 @@
         public static bool UseChars = false;
         public static bool UseStrings = false;
         public static bool UseKeyTags = false;
-        public static bool UseLables = false;
+        public static bool UseLabels = false;
         public static bool UseVars = false;
     }
 }

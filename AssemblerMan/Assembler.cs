@@ -9,7 +9,7 @@ namespace CPUTing.AssemblerMan
         public string[] MCCODE;
         public byte[] MEMRAM;
         private int MCINDEX = 0;
-        private readonly Lables[] Lables = new Lables[0xFF];
+        private readonly Labels[] Labels = new Labels[0xFF];
         private readonly Vars[] vars = new Vars[0xFF];
         private int LABLEINDEX = 0;
         private int VARINDEX = 0;
@@ -27,13 +27,13 @@ namespace CPUTing.AssemblerMan
             MEMRAM = new byte[0xFFFF + 1];
             MCCODE = new string[0xFFFF + 1];
             ASMCODE = new string[0xFFFF + 1];
-            if (AssemblerOps.UseLables || AssemblerOps.UseVars)
+            if (AssemblerOps.UseLabels || AssemblerOps.UseVars)
             {
-                for (int i = 0; i < Lables.Length; i++)
+                for (int i = 0; i < Labels.Length; i++)
                 {
-                    if (AssemblerOps.UseLables)
+                    if (AssemblerOps.UseLabels)
                     {
-                        Lables[i] = new Lables
+                        Labels[i] = new Labels
                         {
                             name = "",
                             addr = "0"
@@ -157,13 +157,13 @@ namespace CPUTing.AssemblerMan
                                 MEMRAM[PCADDR] = byte.Parse(fullADDR.PadLeft(2, '0')); //high
                             }
                         }
-                        else if (AssemblerOps.UseLables)
+                        else if (AssemblerOps.UseLabels)
                         {
                             for (int l = 0; l < LABLEINDEX; l++)
                             {
-                                if (Lables[l].name == ASMCODE[ASMCODEINDEX].Split(' ')[1])
+                                if (Labels[l].name == ASMCODE[ASMCODEINDEX].Split(' ')[1])
                                 {
-                                    HEX = Convert.ToUInt16(Lables[l].addr, 10);
+                                    HEX = Convert.ToUInt16(Labels[l].addr, 10);
                                     MEMRAM[PCADDR] = 00; //LOW
                                     PCADDR++;
                                     MEMRAM[PCADDR] = byte.Parse(HEX.ToString().PadLeft(2, '0')); //high
@@ -182,13 +182,13 @@ namespace CPUTing.AssemblerMan
                             MCCODE[PCADDR] = fullADDR;
                             PCADDR++;
                         }
-                        else if (AssemblerOps.UseLables)
+                        else if (AssemblerOps.UseLabels)
                         {
                             for (int l = 0; l < LABLEINDEX; l++)
                             {
-                                if (Lables[l].name == ASMCODE[ASMCODEINDEX].Split(' ')[1])
+                                if (Labels[l].name == ASMCODE[ASMCODEINDEX].Split(' ')[1])
                                 {
-                                    HEX = Convert.ToUInt16(Lables[l].addr, 10);
+                                    HEX = Convert.ToUInt16(Labels[l].addr, 10);
                                     MEMRAM[PCADDR] = 00; //LOW
                                     PCADDR++;
                                     MEMRAM[PCADDR] = byte.Parse(HEX.ToString().PadLeft(2, '0')); //high
@@ -204,10 +204,10 @@ namespace CPUTing.AssemblerMan
                     MCCODE[PCADDR] = ASMCODE[ASMCODEINDEX].Remove(ATindex);
                 }
 
-                if (AssemblerOps.UseLables && ASMCODE[ASMCODEINDEX].Contains(LABLES))
+                if (AssemblerOps.UseLabels && ASMCODE[ASMCODEINDEX].Contains(LABELS))
                 {
-                    Lables[LABLEINDEX].name = ASMCODE[ASMCODEINDEX].Trim(LABLES);
-                    Lables[LABLEINDEX].addr = PCADDR.ToString().PadLeft(4, '0');
+                    Labels[LABLEINDEX].name = ASMCODE[ASMCODEINDEX].Trim(LABELS);
+                    Labels[LABLEINDEX].addr = PCADDR.ToString().PadLeft(4, '0');
                     LABLEINDEX++;
                 }
 
@@ -271,13 +271,13 @@ namespace CPUTing.AssemblerMan
             {
                 if (MCCODE[i] != null && MCCODE[i].Contains(' '))
                 {
-                    if (AssemblerOps.UseLables)
+                    if (AssemblerOps.UseLabels)
                     {
                         for (int l = 0; l < LABLEINDEX; l++)
                         {
-                            if (Lables[l].name == MCCODE[i].Split(' ', 2)[1])
+                            if (Labels[l].name == MCCODE[i].Split(' ', 2)[1])
                             {
-                                string HEXADDR = Convert.ToString(int.Parse(Lables[l].addr), 16);
+                                string HEXADDR = Convert.ToString(int.Parse(Labels[l].addr), 16);
                                 MCCODE[i] = MCCODE[i].Split(' ', 2)[0] + " " + HEXADDR.PadLeft(4, '0');
                             }
                         }
