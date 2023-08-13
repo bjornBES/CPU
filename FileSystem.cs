@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 
 namespace CPUTing
@@ -10,12 +11,14 @@ namespace CPUTing
         string[] NeededFileName =
         {
             "Main.BZ",
-            "MarcoCommands.txt"
+            "MarcoCommands.txt",
+            "CPUSettings.info"
         };
         private string LocalApp = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
         public string BMasmpath;
         public string BZpath;
         public string MarcoCommands;
+        public string InfoPath;
         public DirectoryInfo BZCode;
         public FileInfo[] files;
         public FileSystem()
@@ -26,6 +29,7 @@ namespace CPUTing
             {
                 BZpath = LocalApp + "/CPU/BZCode";
                 MarcoCommands = LocalApp + "/CPU/Marcos";
+                InfoPath = LocalApp + "/CPU";
                 if (Directory.Exists(BZpath) == false)
                 {
                     Directory.CreateDirectory(BZpath);
@@ -45,7 +49,34 @@ namespace CPUTing
                     FileStream file = File.Create(MarcoCommands + "/" + NeededFileName[1], 1000);
                     file.Close();
                 }
+                if (File.Exists(InfoPath + "/" + NeededFileName[2]) == false)
+                {
+                    string Text = 
+                        "CPU Info\r\n" +
+                        "UseCompiler:false\r\n" +
+                        "UseDeveloper:false";
+                    FileStream file = File.Create(InfoPath + "/" + NeededFileName[2], 1000);
+                    for (int i = 0; i < Text.Length; i++)
+                    {
+                        char value = Text[i];
+                        file.WriteByte(Convert.ToByte(value));
+                    }
+                    file.Close();
+                }
             }
+            GetDirectory();
+            GetFiles();
+        }
+        public string GetMarcoPath()
+        {
+            return MarcoCommands + "/" + NeededFileName[1];
+        }
+        public string GetInfoText()
+        {
+            return File.ReadAllText(InfoPath + "/" + NeededFileName[2]);
+        }
+        public void GetDirectory()
+        {
             if (Directory.Exists(BZpath))
             {
                 BZCode = new DirectoryInfo(BZpath);
@@ -54,30 +85,37 @@ namespace CPUTing
             {
                 BZCode = Directory.CreateDirectory(BZpath);
             }
-            int FileIndex = 0;
-            FileInfo[] TempFileInfo = BZCode.GetFiles();
-            for (int i = 0; i < TempFileInfo.Length; i++)
+        }
+        public void ShowFiles(FileInfo[] files)
+        {
+            for (int i = 0; i < files.Length; i++)
             {
-                if (TempFileInfo[i].Extension == ".BZ")
+                if (files[i].Extension == ".BZ")
                 {
-                    files[FileIndex] = TempFileInfo[i];
-                    FileIndex++;
+                    Console.SetCursorPosition(1, 2 + i);
+                    Console.WriteLine(files[i].Name);
                 }
             }
         }
+        public FileInfo[] GetAllFiles()
+        {
+            GetFiles();
+            return BZCode.GetFiles();
+        }
         public void GetFiles()
         {
+            GetDirectory();
             int FileIndex = 0;
-            FileInfo[] TempFileInfo = BZCode.GetFiles();
-            for (int i = 0; i < TempFileInfo.Length; i++)
+            List<FileInfo> TempFileInfo = new List<FileInfo>();
+            for (int i = 0; i < BZCode.GetFiles().Length; i++)
             {
-                if (TempFileInfo[i].Extension == ".BZ")
+                if (BZCode.GetFiles()[i].Extension == ".BZ")
                 {
-                    files[FileIndex] = TempFileInfo[i];
+                    TempFileInfo.Add(BZCode.GetFiles()[i]);
                     FileIndex++;
                 }
             }
-
+            files = TempFileInfo.ToArray();
         }
     }
 }

@@ -7,6 +7,7 @@ using System.Numerics;
 using CPUTing.CPUItems;
 using CPUTing.AssemblerMan;
 using System.Linq;
+using System.Security.Cryptography;
 
 namespace CPUTing
 {
@@ -17,12 +18,12 @@ namespace CPUTing
         private CPU CPU;
         private MEM MEM;
         private MEM MEM1;
+        private InfoDecoder InfoDecoder;
         private FileSystem FileSystem;
         private MarcoMan MarcoMan;
         private Complier Complier;
         private readonly Assembler Assembler;
         private string[] code;
-        private readonly bool useCompiler = false;
         string MarcoArgs;
         string FileName;
         private static void Main()
@@ -45,13 +46,14 @@ namespace CPUTing
             Console.CursorVisible = true;
             Console.Clear();
             FileSystem = new FileSystem();
+            InfoDecoder = new InfoDecoder(FileSystem.GetInfoText());
             UPDATE();
         }
         bool RUN = true;
         string User = "";
         private void UPDATE()
         {
-            MarcoMan.SetPath(FileSystem.MarcoCommands);
+            MarcoMan.SetPath(FileSystem.GetMarcoPath());
             MarcoMan.SplitCommands();
             Console.SetWindowSize(40, 20);
             Console.SetBufferSize(40, 20);
@@ -95,7 +97,7 @@ namespace CPUTing
                         }
                     }
                 }
-                if (limitedCursorPos != 2 && keyInfo.Key == ConsoleKey.UpArrow)
+                if (limitedCursorPos != 1 && keyInfo.Key == ConsoleKey.UpArrow)
                 {
                     limitedCursorPos--;
                     limitedCursorPos = Math.Clamp(limitedCursorPos, 2, 11);
@@ -144,7 +146,7 @@ namespace CPUTing
         {
             AssemblerSettings.InterpretString(User);
             Assembler.Reset();
-            if (useCompiler == true)
+            if (Info.useCompiler == true)
             {
                 RUNCOMPILER();
             }
@@ -379,7 +381,7 @@ namespace CPUTing
         }
         public override void Files()
         {
-            FileInfo[] files = GetFiles();
+            FileInfo[] files = FileSystem.GetAllFiles();
             bool Exit = false;
             int CursorY = 2;
             int Page = 0;
@@ -397,10 +399,11 @@ namespace CPUTing
                     bool SubExit = false;
                     do
                     {
+                        int[] Keys = { 0, 0 };
                         int SubCursorY = 0;
                         int CursorIndexDown = 0;
                         string[] Code = File.ReadAllText(file.FullName).Split('\n');
-                        for (int i = CursorIndexDown; i < 10 + CursorIndexDown; i++)
+                        for (int i = Keys[1]; i < 10 + Keys[1]; i++)
                         {
                             if (Code.Length > i)
                             {
@@ -410,24 +413,7 @@ namespace CPUTing
                         keyInfo = Console.ReadKey();
                         Console.Clear();
                         Console.WriteLine();
-                        if (SubCursorY != 1 && keyInfo.Key == ConsoleKey.UpArrow)
-                        {
-                            SubCursorY--;
-                            if (CursorIndexDown != 0 && SubCursorY == 0)
-                            {
-                                SubCursorY = 10;
-                                CursorIndexDown--;
-                            }
-                        }
-                        if (SubCursorY != 10 && keyInfo.Key == ConsoleKey.DownArrow)
-                        {
-                            SubCursorY++;
-                            if (CursorIndexDown != Code.Length && SubCursorY == 10)
-                            {
-                                SubCursorY = 0;
-                                CursorIndexDown++;
-                            }
-                        }
+                        MoveCursorFiles(keyInfo, Code, SubCursorY, CursorIndexDown, out Keys);
                         if (keyInfo.Key == ConsoleKey.E)
                         {
                             write.StartWrite(file.FullName);
@@ -462,7 +448,7 @@ namespace CPUTing
                     Console.WriteLine("Write the Name of the File");
                     string FileName = Console.ReadLine();
                     FileStream fileStream = File.Create(FileSystem.BZpath + "/" + FileName + ".BZ", 100);
-                    files = GetFiles();
+                    files = FileSystem.GetAllFiles();
                     fileStream.Close();
                     Console.Clear();
                 }
@@ -475,7 +461,7 @@ namespace CPUTing
                     {
                         File.Delete(file.FullName);
                     }
-                    files = GetFiles();
+                    files = FileSystem.GetAllFiles();
                     Console.Clear();
                 }
                 if (keyInfo.Key == ConsoleKey.E || keyInfo.Key == ConsoleKey.Escape)
@@ -483,7 +469,7 @@ namespace CPUTing
                     Exit = true;
                 }
                 Console.SetCursorPosition(1, 2);
-                ShowFiles(files);
+                FileSystem.ShowFiles(files);
                 Console.SetCursorPosition(0, CursorY);
                 Console.Write('@');
 
@@ -492,22 +478,32 @@ namespace CPUTing
                 Console.WriteLine("Page" + Page);
             } while (Exit == false);
         }
-
-        public FileInfo[] GetFiles()
+        public void MoveCursorFiles(ConsoleKeyInfo keyInfo, string[] Code, int SubCursorY, int CursorIndexDown, out int[] ints)
         {
-            FileSystem.GetFiles();
-            return FileSystem.BZCode.GetFiles();
-        }
-        public void ShowFiles(FileInfo[] files)
-        {
-            for (int i = 0; i < files.Length; i++)
+            int[] outPut = new int[2];
+            if (SubCursorY != 1 && keyInfo.Key == ConsoleKey.UpArrow)
             {
-                if(files[i].Extension == ".BZ")
+                SubCursorY--;
+                if (CursorIndexDown != 0 && SubCursorY == 0)
                 {
-                    Console.SetCursorPosition(1, 2 + i);
-                    Console.WriteLine(files[i].Name);
+                    SubCursorY = 10;
+                    CursorIndexDown--;
+                    outPut[0] = SubCursorY;
+                    outPut[1] = CursorIndexDown;
                 }
             }
+            if (SubCursorY != 10 && keyInfo.Key == ConsoleKey.DownArrow)
+            {
+                SubCursorY++;
+                if (CursorIndexDown != Code.Length && SubCursorY == 10)
+                {
+                    SubCursorY = 0;
+                    CursorIndexDown++;
+                    outPut[0] = SubCursorY;
+                    outPut[1] = CursorIndexDown;
+                }
+            }
+            ints = outPut;
         }
         public void DUMPer(ushort CursorY)
         {
@@ -609,21 +605,18 @@ namespace CPUTing
         }
     }
     public abstract class ConsoleMenu
-    { 
+    {
         public string[] _SetPath = new string[] { "Set", "set", "s", "S", "SP", "sp" };
         public string[] _Marcos = new string[] { "Marco", "marco", "M", "m", "RM", "rm" };
         public string[] _Build = new string[] { "Build", "build", "B", "b", "bfc", "Bjc" };
         public string[] _Debug = new string[] { "Debug", "debug", "DB", "db", "dB", "Db" };
-        public string[] _RUN = new string[] { "Run", "run", "r", "R", "RUN", "ruN"};
+        public string[] _RUN = new string[] { "Run", "run", "r", "R", "RUN", "ruN" };
         public string[] _Write = new string[] { "Write", "write", "w", "W", "WRITE", "writE" };
         public string[] _Dump = new string[] { "dump", "Dump", "d", "D", "DUMP", "dumP" };
         public string[] _DumpRam = new string[] { "dumpram", "DumpRam", "dr", "DR", "DUMPRAM", "dumpraM" };
         public string[] _Exit = new string[] { "Exit", "exit", "E", "e", "exiT", "EXIT" };
         public string[] _Inport = new string[] { "Inport", "inport", "I", "i", "IP", "ip" };
         public string[] _Files = new string[] { "Files", "files", "f", "F", "FI", "fi" };
-        public void Start()
-        {
-        }
         public void GetFuns(string user)
         {
             for (int i = 0; i < _Build.Length; i++)
